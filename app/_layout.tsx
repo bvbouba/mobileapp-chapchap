@@ -20,6 +20,7 @@ export {
 } from "expo-router";
 import { getConfig } from "../config";
 import SimpleBackHeader from "../components/layout/SimpleBackHeader";
+import TripResultHeader from "../components/layout/TripResultHeader";
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -32,19 +33,25 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
   }, [error]);
 
-  return (
-    <>
-      {/* Keep the splash screen open until the assets have loaded. In the future, we should just support async font loading with a native version of font-display. */}
-      {!loaded && <SplashScreen />}
-      {loaded && <RootLayoutNav />}
-    </>
-  );
+  // 3. Use an effect to hide the splash screen once fonts are loaded
+  useEffect(() => {
+    if (loaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded]);
+
+  // 4. Return null instead of the <SplashScreen /> component
+  if (!loaded) {
+    return null;
+  }
+
+  return <RootLayoutNav />;
 }
+
 LogBox.ignoreAllLogs();
 
 function RootLayoutNav() {
@@ -75,12 +82,12 @@ function RootLayoutNav() {
                   <Stack >
                     <Stack.Screen name="(tabs)" options={{
 
-                      header: () => <SearchHeader withBack={false} cleanSearch />
+                      header: () => <></>
                     }} />
                     <Stack.Screen name="products/results" options={{
                       headerStyle: {
                         backgroundColor: colors.header,
-                      }, header: () => <SearchHeader withBack />
+                      }, header: () => <TripResultHeader />
                     }} />
                     <Stack.Screen name="products/details/[id]" options={baseHeaderProps} />
                     <Stack.Screen name="checkout" options={{ ...baseHeaderProps, headerTitle: "Checkout", }} />

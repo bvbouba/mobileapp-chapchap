@@ -1,6 +1,6 @@
 import React, { FC, useState } from "react";
 import { ProductFragment, ProductVariantFragment } from "../../saleor/api.generated";
-import { PaddedView, Text, View } from './../Themed';
+import { PaddedView, Text, View } from '../Themed';
 import { StyleSheet } from 'react-native';
 import { useCartContext } from "../../context/useCartContext";
 import ProductImageCarousel from "./details/ProductImageCarousel";

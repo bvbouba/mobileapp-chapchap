@@ -1,11 +1,26 @@
 module.exports = {
+    "name": "exposhop",
+    "slug": "exposhop",
+    "version": "1.0.0",
+    "updates": {
+        "url": "https://u.expo.dev/b47648ab-c041-49f6-8246-4f90c83da126"
+    },
+    "runtimeVersion": {
+        "policy": "appVersion"
+    },
     "extra": {
+        "eas": {
+            "projectId": "b47648ab-c041-49f6-8246-4f90c83da126"
+        },
         saleorApi: process.env.SALEOR_API_URL || "",
         stripePK: process.env.STRIPE_PK || "",
         channel: process.env.CHANNEL || "",
         locale: process.env.LOCALE?.split(",") || [],
     },
     "plugins": [
+        "expo-font",
+        "expo-router",
+        "expo-web-browser",
         [
             "@stripe/stripe-react-native",
             {

@@ -2,9 +2,8 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
 import { useColorScheme, StyleSheet } from 'react-native';
 
-import { Text, View } from './../../components/Themed';
+import { Text, View } from '../../components/Themed';
 import Colors from '../../constants/Colors';
-import { useCartContext } from '../../context/useCartContext';
 
 /**
  * You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
@@ -34,21 +33,19 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '',
+          title: 'Recherche',
           headerShown: false,
-          tabBarIcon: ({ color }) => <TabBarIcon name="shopping-bag" color={color} />,
+          tabBarIcon: ({ color }) => <TabBarIcon name="search" color={color} />,
         }}
       />
       <Tabs.Screen
         name="cart"
         options={{
-          title: '',
+          title: 'Mes Voyages',
           headerShown: false,
           tabBarIcon: ({ color }) => {
-            const { cart } = useCartContext()
-            return <TabBarIcon name="shopping-cart"
+            return <TabBarIcon name="ticket"
               color={color}
-              number={cart && cart.lines.length > 0 ? cart.lines.map(line => line.quantity).reduce((prev, curr) => prev + curr, 0) : undefined}
             />
           },
         }}
@@ -56,7 +53,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="account"
         options={{
-          title: '',
+          title: 'Profil',
           headerShown: false,
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
         }}

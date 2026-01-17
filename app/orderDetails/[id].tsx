@@ -1,4 +1,4 @@
-import { Link, Stack, usePathname, useSearchParams } from "expo-router";
+import { Link, Stack, usePathname, useLocalSearchParams } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import { Text } from "../../components/Themed";
 import OrderContent from "../../components/orders/OrderContent";
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
 
 const OrderDetailsPage = () => {
     const pathname = usePathname();
-    const { orderSuccess } = useSearchParams();
+    const { orderSuccess } = useLocalSearchParams();
     const { removeCart } = useCartContext();
     const [orderCache, setOrderCache] = useState<OrderFragment | undefined>(undefined)
     const [loading, setLoading] = useState<boolean>(true)

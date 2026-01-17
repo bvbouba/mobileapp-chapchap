@@ -1,4 +1,4 @@
-fragment ProductVariantFragment on ProductVariant {
+fragment ProductVariant on ProductVariant {
   id
   sku
   name
@@ -31,7 +31,7 @@ fragment ProductVariantFragment on ProductVariant {
   }
 }
 
-fragment ProductFragment on Product {
+fragment Product on Product {
   id
   name
   description
@@ -45,7 +45,7 @@ fragment ProductFragment on Product {
     alt
   }
   defaultVariant {
-    ...ProductVariantFragment
+    ...ProductVariant
   }
   pricing {
     priceRange {
@@ -72,13 +72,13 @@ fragment ProductFragment on Product {
     }
   }
   variants {
-    ...ProductVariantFragment
+    ...ProductVariant
   }
 }
 
 query getProductById($id: ID!, $channel: String!) {
   product(id: $id, channel: $channel) {
-    ...ProductFragment
+    ...Product
   }
 }
 
@@ -86,7 +86,7 @@ query getProductsList($channel: String!) {
   products(first: 10, channel: $channel) {
     edges {
       node {
-        ...ProductFragment
+        ...Product
       }
     }
   }
@@ -109,7 +109,7 @@ query searchProducts(
   ) {
     edges {
       node {
-        ...ProductFragment
+        ...Product
       }
     }
   }

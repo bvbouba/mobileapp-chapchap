@@ -5,14 +5,14 @@ import { View } from "../Themed";
 import ProductListComponent from "./ProductListComponent";
 import ProductFilter from "./filter/ProductFilter";
 import ProductFilterBottomSheet from "./filter/ProductFilterBottomSheet";
-import { useRouter, useSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 const ProductsScreen = () => {
     const {
         search: searchQueryString,
         collection: collectionsQueryString,
         categories: categoriesQueryString,
-    } = useSearchParams();
+    } = useLocalSearchParams();
     const router = useRouter()
 
     const [filterOpen, setFilterOpen] = useState(false);

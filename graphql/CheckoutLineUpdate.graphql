@@ -1,0 +1,100 @@
+mutation checkoutLineUpdate($checkoutId: ID!, $lines: [CheckoutLineUpdateInput!]!) {
+	checkoutLinesUpdate(id: $checkoutId, lines: $lines) {
+		errors {
+			...CheckoutError
+		}
+		checkout {
+			...Checkout
+		}
+	}
+}
+
+fragment CheckoutError on CheckoutError {
+	message
+	field
+	code
+}
+
+fragment GiftCard on GiftCard {
+	displayCode
+	id
+	currentBalance {
+		...Money
+	}
+}
+
+fragment Address on Address {
+	id
+	city
+	phone
+	postalCode
+	companyName
+	cityArea
+	streetAddress1
+	streetAddress2
+	countryArea
+	country {
+		country
+		code
+	}
+	firstName
+	lastName
+}
+
+fragment PaymentGateway on PaymentGateway {
+	id
+	name
+	currencies
+	config {
+		field
+		value
+	}
+}
+
+fragment CheckoutLine on CheckoutLine {
+	id
+	quantity
+	totalPrice {
+		gross {
+			currency
+			amount
+		}
+	}
+	unitPrice {
+		gross {
+			...Money
+		}
+	}
+	undiscountedUnitPrice {
+		...Money
+	}
+	variant {
+		attributes(variantSelection: ALL) {
+			values {
+				name
+				dateTime
+				boolean
+			}
+		}
+		id
+		name
+		product {
+			name
+			media {
+				alt
+				type
+				url(size: 72)
+			}
+		}
+		media {
+			alt
+			type
+			url(size: 72)
+		}
+	}
+}
+
+fragment Money on Money {
+	currency
+	amount
+}

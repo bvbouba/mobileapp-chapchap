@@ -1,0 +1,77 @@
+query ProductVariantCollection(
+  $before: String
+  $after: String
+  $first: Int = 4
+  $where: ProductVariantWhereInput
+  $sortBy: ProductVariantSortingInput
+  $channel: String!
+) {
+  productVariants(
+    first: $first
+    channel:$channel
+    after:$after
+    before: $before
+	where: $where
+    sortBy:$sortBy
+  ){
+	totalCount
+    edges{
+      node{
+        ...ProductVariantListItem
+      }
+    }
+	 pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+  }
+}
+  
+
+fragment ProductVariantListItem on ProductVariant {
+	id
+	name
+	quantityAvailable
+	product {
+		id
+		name
+		thumbnail(size: 1024, format: WEBP) {
+		url
+		alt
+	}
+		attributes {
+			attribute {
+				name
+				slug
+				inputType
+			}
+			values {
+				name
+				slug
+				value
+			}
+		}
+	}
+	attributes {
+		attribute {
+			name
+			slug
+			inputType
+		}
+		values {
+			name
+			slug
+			value
+		}
+	}
+	pricing {
+		price {
+			gross {
+				amount
+				currency
+			}
+		}
+	}
+}

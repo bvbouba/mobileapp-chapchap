@@ -1,161 +1,8 @@
-fragment AddressFragment on Address {
-  firstName
-  lastName
-  streetAddress1
-  streetAddress2
-  phone
-  country {
-    code
-    country
-  }
-  city
-  postalCode
-}
-
-fragment CheckoutFragment on Checkout {
-  id
-  voucherCode
-  isShippingRequired
-  discount {
-    currency
-    amount
-  }
-  email
-  shippingPrice {
-    gross {
-      currency
-      amount
-    }
-  }
-  deliveryMethod {
-    __typename
-  }
-  shippingMethods {
-    id
-    name
-    description
-    message
-    price {
-      currency
-      amount
-    }
-    active
-  }
-  totalPrice {
-    tax {
-      currency
-      amount
-    }
-    net {
-      currency
-      amount
-    }
-    gross {
-      currency
-      amount
-    }
-  }
-  subtotalPrice {
-    tax {
-      currency
-      amount
-    }
-    net {
-      currency
-      amount
-    }
-    gross {
-      currency
-      amount
-    }
-  }
-
-  billingAddress {
-    ...AddressFragment
-  }
-  shippingAddress {
-    ...AddressFragment
-  }
-  lines {
-    id
-    quantity
-    requiresShipping
-    metadata {
-      key
-      value
-    }
-    undiscountedUnitPrice {
-      amount
-      currency
-    }
-    undiscountedTotalPrice {
-      amount
-      currency
-    }
-    totalPrice {
-      currency
-      net {
-        currency
-        amount
-      }
-      gross {
-        currency
-        amount
-      }
-      tax {
-        currency
-        amount
-      }
-    }
-
-    variant {
-      id
-      product {
-        id
-        name
-        attributes {
-          values {
-            name
-            slug
-            value
-            boolean
-            reference
-            plainText
-          }
-          attribute {
-            slug
-          }
-        }
-        media {
-          url
-        }
-      }
-      attributes {
-        values {
-          name
-          slug
-          value
-          boolean
-          reference
-          plainText
-        }
-        attribute {
-          slug
-        }
-      }
-      sku
-      name
-      media {
-        url
-      }
-    }
-  }
-}
 
 mutation createCheckout($channel: String!, $lines: [CheckoutLineInput!]!) {
   checkoutCreate(input: { channel: $channel, lines: $lines }) {
     checkout {
-      ...CheckoutFragment
+      ...Checkout
     }
     errors {
       field
@@ -167,14 +14,14 @@ mutation createCheckout($channel: String!, $lines: [CheckoutLineInput!]!) {
 
 query getCheckoutById($id: ID!) {
   checkout(id: $id) {
-    ...CheckoutFragment
+    ...Checkout
   }
 }
 
 mutation checkoutCreate($channel: String!, $lines: [CheckoutLineInput!]!) {
   checkoutCreate(input: { channel: $channel, lines: $lines }) {
     checkout {
-      ...CheckoutFragment
+      ...Checkout
     }
     errors {
       field
@@ -187,7 +34,7 @@ mutation checkoutCreate($channel: String!, $lines: [CheckoutLineInput!]!) {
 mutation checkoutLinesUpdate($id: ID!, $lines: [CheckoutLineUpdateInput!]!) {
   checkoutLinesUpdate(id: $id, lines: $lines) {
     checkout {
-      ...CheckoutFragment
+      ...Checkout
     }
     errors {
       field
@@ -200,7 +47,7 @@ mutation checkoutLinesUpdate($id: ID!, $lines: [CheckoutLineUpdateInput!]!) {
 mutation CheckoutLinesAdd($id: ID!, $lines: [CheckoutLineInput!]!) {
   checkoutLinesAdd(id: $id, lines: $lines) {
     checkout {
-      ...CheckoutFragment
+      ...Checkout
     }
     errors {
       field
@@ -213,7 +60,7 @@ mutation CheckoutLinesAdd($id: ID!, $lines: [CheckoutLineInput!]!) {
 mutation checkoutAddPromoCode($id: ID!, $promoCode: String!) {
   checkoutAddPromoCode(checkoutId: $id, promoCode: $promoCode) {
     checkout {
-      ...CheckoutFragment
+      ...Checkout
     }
     errors {
       field
@@ -229,7 +76,7 @@ mutation checkoutBillingAddressUpdate(
 ) {
   checkoutBillingAddressUpdate(id: $id, billingAddress: $billingAddress) {
     checkout {
-      ...CheckoutFragment
+      ...Checkout
     }
     errors {
       field
@@ -244,7 +91,7 @@ mutation checkoutShippingAddressUpdate(
 ) {
   checkoutShippingAddressUpdate(id: $id, shippingAddress: $shippingAddress) {
     checkout {
-      ...CheckoutFragment
+      ...Checkout
     }
     errors {
       field
@@ -256,7 +103,7 @@ mutation checkoutShippingAddressUpdate(
 mutation checkoutShippingMethodUpdate($id: ID!, $shippingMethodId: ID!) {
   checkoutShippingMethodUpdate(id: $id, shippingMethodId: $shippingMethodId) {
     checkout {
-      ...CheckoutFragment
+      ...Checkout
     }
     errors {
       field
@@ -302,7 +149,7 @@ mutation checkoutComplete($checkoutId: ID!) {
 mutation checkoutEmailUpdate($id: ID!, $email: String!) {
   checkoutEmailUpdate(id: $id, email: $email) {
     checkout {
-      ...CheckoutFragment
+      ...Checkout
     }
     errors {
       field

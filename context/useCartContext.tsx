@@ -1,11 +1,17 @@
 import { createContext, FC, PropsWithChildren, useContext, useEffect, useState } from "react";
 import { Alert } from "react-native";
 import { getConfig } from "../config";
-import { CheckoutFragment, useCheckoutLinesAddMutation, useCheckoutLinesUpdateMutation, useCreateCheckoutMutation, useGetCheckoutByIdLazyQuery } from "../saleor/api.generated";
+import { 
+    CheckoutFragment, 
+    useCheckoutLinesAddMutation, 
+    useCheckoutLinesUpdateMutation, 
+    useCreateCheckoutMutation, 
+    useGetCheckoutByIdLazyQuery,
+    useCheckoutDeleteLinesMutation, 
+    useCheckoutAddLineMutation
+} from "../saleor/api.generated";
 import { getCheckoutId, removeCheckoutId, setCheckoutId } from "./basketStore";
-import {
-    handleErrors,
-} from "./checkout";
+import { handleErrors } from "./checkout";
 
 interface CartContextModel {
     cart: CheckoutFragment | undefined;
@@ -36,14 +42,19 @@ export const CartProvider: FC<PropsWithChildren> = ({ children }) => {
     const [loaded, setLoaded] = useState<boolean | undefined>(undefined);
     const [cart, setCart] = useState<CheckoutFragment | undefined>(undefined);
 
-    const [getCheckoutById, options] = useGetCheckoutByIdLazyQuery()
+    const [getCheckoutById] = useGetCheckoutByIdLazyQuery();
     const [createCheckout] = useCreateCheckoutMutation();
-    const [addLineItem] = useCheckoutLinesAddMutation();
+    const [addLineItem] = useCheckoutAddLineMutation();
     const [updateLineMutation] = useCheckoutLinesUpdateMutation();
+    // 1. Initialize the Delete Mutation
+    const [deleteLinesMutation] = useCheckoutDeleteLinesMutation();
 
     const getCheckout = async () => {
-        const result = await getCheckoutById({ variables: { id: (await getCheckoutId()) || "none" } });
-        handleErrors(result)
+        const id = await getCheckoutId();
+        const result = await getCheckoutById({ 
+            variables: { id: id || "none" },
+            fetchPolicy: "network-only" 
+        });
         return result.data?.checkout as CheckoutFragment;
     }
 
@@ -56,75 +67,79 @@ export const CartProvider: FC<PropsWithChildren> = ({ children }) => {
             const result = await getCheckout();
             if (!result) {
                 setCart(undefined);
-                await removeCheckoutId()
+                await removeCheckoutId();
                 return undefined;
             }
             return result;
         } catch (e) {
-            console.error(e);
-            await removeCheckoutId()
+            await removeCheckoutId();
             setCart(undefined);
+            return undefined;
         }
     };
 
     const addItem = async (variantId: string) => {
         setLoading(true);
-        const cart = await checkCheckoutExists();
+        try {
+            const currentCart = await checkCheckoutExists();
 
-        if (cart) {
-            const updatedCart = await addLineItem({
-                variables: {
-                    id: cart.id,
-                    lines: [{
-                        variantId,
-                        quantity: 1
-                    }]
+            if (currentCart) {
+                // 2. CLEAR EXISTING LINES
+                // If there are existing tickets, delete them all first
+                if (currentCart.lines && currentCart.lines.length > 0) {
+                    const lineIdsToDelete = currentCart.lines.map((line) => line.id);
+                    await deleteLinesMutation({
+                        variables: {
+                            checkoutId: currentCart.id,
+                            lineIds: lineIdsToDelete
+                        }
+                    });
                 }
-            });
-            setCart(updatedCart.data?.checkoutLinesAdd?.checkout as CheckoutFragment);
-            setLoading(false);
 
-        } else {
-            const updatedCart = await createCheckout({
-                variables: {
-                    channel: getConfig().channel,
-                    lines: [{
-                        variantId,
-                        quantity: 1
-                    }]
+                // 3. ADD NEW TICKET
+                const updatedCart = await addLineItem({
+                    variables: {
+                        id: currentCart.id,
+                        productVariantId: variantId
+                    }
+                });
+                
+                setCart(updatedCart.data?.checkoutLinesAdd?.checkout as CheckoutFragment);
+            } else {
+                // CREATE NEW CHECKOUT
+                const newCheckout = await createCheckout({
+                    variables: {
+                        channel: getConfig().channel,
+                        lines: [{ variantId, quantity: 1 }]
+                    }
+                });
+
+                const newId = newCheckout.data?.checkoutCreate?.checkout?.id;
+                if (newId) {
+                    await setCheckoutId(newId);
+                    setCart(newCheckout.data?.checkoutCreate?.checkout as CheckoutFragment);
                 }
-            });
-
-            await setCheckoutId(updatedCart.data?.checkoutCreate?.checkout?.id as string)
-
-            setCart(updatedCart.data?.checkoutCreate?.checkout as CheckoutFragment);
+            }
+        } catch (error) {
+            console.error("Error adding item:", error);
+            Alert.alert("Erreur", "Impossible d'ajouter le billet au panier.");
+        } finally {
             setLoading(false);
+            await refreshCart();
         }
-
-        await refreshCart();
     };
 
     const updateItemQuantity = async (lineId: string, quantity: number) => {
         setLoading(true);
-        console.log(lineId, quantity)
-
-        const updatedCart = await updateLineMutation(
-            {
-                variables: {
-                    id: cart?.id as string,
-                    lines: [{
-                        lineId,
-
-                        quantity
-                    }]
-                }
+        const updatedCart = await updateLineMutation({
+            variables: {
+                id: cart?.id as string,
+                lines: [{ lineId, quantity }]
             }
+        });
 
-
-        );
-
-        if (updatedCart.errors || (updatedCart.data?.checkoutLinesUpdate?.errors && updatedCart.data?.checkoutLinesUpdate?.errors.length > 0)) {
-            Alert.alert("Error", "There was an error updating your cart")
+        if (updatedCart.data?.checkoutLinesUpdate?.errors?.length) {
+            Alert.alert("Error", "There was an error updating your cart");
         }
         setCart(updatedCart.data?.checkoutLinesUpdate?.checkout as CheckoutFragment);
         setLoading(false);
@@ -132,27 +147,21 @@ export const CartProvider: FC<PropsWithChildren> = ({ children }) => {
 
     const refreshCart = async () => {
         setLoading(true);
-
         try {
             const newCart = await getCheckout();
-
             setCart(newCart);
-            setLoading(false);
-            setLoaded(true);
             return newCart;
         } catch (e) {
-            console.error(e);
+            setCart(undefined);
+        } finally {
+            setLoading(false);
+            setLoaded(true);
         }
-
-        setLoading(false);
-        setLoaded(true);
-        setCart(undefined);
-        return undefined;
     };
 
     const removeCart = async () => {
         await removeCheckoutId();
-        setCart(undefined)
+        setCart(undefined);
     }
 
     return (

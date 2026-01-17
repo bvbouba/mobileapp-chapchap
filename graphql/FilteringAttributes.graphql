@@ -1,0 +1,36 @@
+fragment AttributeFilterChoice on AttributeValue {
+	id
+	name
+	slug
+}
+
+fragment AttributeFilter on Attribute {
+	id
+	inputType
+	name
+	slug
+	withChoices
+	choices(first: 20) {
+		edges {
+			node {
+				...AttributeFilterChoice
+			}
+			cursor
+		}
+	}
+	metadata {
+		key
+		value
+	}
+}
+
+query FilteringAttributes($filter: AttributeFilterInput!, $channel: String!) {
+	attributes(filter: $filter, first: 100, channel: $channel) {
+		totalCount
+		edges {
+			node {
+				...AttributeFilter
+			}
+		}
+	}
+}

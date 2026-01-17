@@ -1,6 +1,6 @@
 import { FC } from "react";
 import { CheckoutLine } from "../../saleor/api.generated";
-import { Divider, Text, View } from './../Themed';
+import { Divider, Text, View } from '../Themed';
 import { Image, Pressable, StyleSheet } from 'react-native';
 import { getConfig } from "../../config";
 import { useRouter } from "expo-router";

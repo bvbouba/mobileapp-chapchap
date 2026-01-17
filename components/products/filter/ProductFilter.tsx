@@ -2,9 +2,9 @@ import React, { FC, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { useProductContext } from '../../../context/useProductContext';
 
-import { useSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { getConfig } from '../../../config';
-import { CategoryPathFragment, CollectionFragment, useCategoryPathsQuery, useGetCollectionsQuery } from '../../../saleor/api.generated';
+import { useCategoryPathsQuery, useGetCollectionsQuery } from '../../../saleor/api.generated';
 import { Divider, Text, View } from '../../Themed';
 import { Button } from 'react-native-paper';
 
@@ -14,7 +14,7 @@ interface Props {
 
 const ProductFilter: FC<Props> = ({ openFilters }) => {
 
-    const { collection: collectionsQueryString, categories: categoriesQueryString } = useSearchParams();
+    const { collection: collectionsQueryString, categories: categoriesQueryString } = useLocalSearchParams();
     const { data: collectionsData, called: collectionsCalled } = useGetCollectionsQuery()
     const { data: categoriesData } = useCategoryPathsQuery({
         variables: {
@@ -26,7 +26,7 @@ const ProductFilter: FC<Props> = ({ openFilters }) => {
 
     useEffect(() => {
         if (collectionsQueryString && collectionsCalled) {
-            const foundCollection: CollectionFragment | undefined = collectionsData?.collections?.edges.map(edge => edge.node)
+            const foundCollection = collectionsData?.collections?.edges.map(edge => edge.node)
                 .find(collection => collection.slug === collectionsQueryString);
 
             setCollectionFilter(foundCollection)
@@ -38,7 +38,7 @@ const ProductFilter: FC<Props> = ({ openFilters }) => {
 
     useEffect(() => {
         if (categoriesQueryString && categoriesData) {
-            const foundCategories: CategoryPathFragment[] = categoriesData?.categories?.edges.map(edge => edge.node)
+            const foundCategories = categoriesData?.categories?.edges.map(edge => edge.node)
                 .filter(cat => {
                     if (typeof categoriesQueryString === "string") {
                         const categories = categoriesQueryString.split(",")

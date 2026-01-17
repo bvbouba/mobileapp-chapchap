@@ -2,7 +2,7 @@ import React, { FC, useCallback, useEffect } from 'react';
 import { SafeAreaView, StyleSheet, TextInput, View } from 'react-native';
 import { colors } from '../Themed';
 
-import { useRouter, useSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFormik } from 'formik';
 
 interface Props {
@@ -19,7 +19,7 @@ const ProductSearch: FC<Props> = ({ cleanSearch, searchOnLoad = true }) => {
         search: searchQueryString,
         collection: collectionsQueryString,
         categories: categoriesQueryString
-    } = useSearchParams();
+    } = useLocalSearchParams();
     const router = useRouter()
 
     const formik = useFormik<Form>({

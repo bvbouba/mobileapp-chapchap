@@ -2,7 +2,7 @@ import React, { FC } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet } from 'react-native';
 import { useProductContext } from '../../context/useProductContext';
 
-import { Text, View } from './../Themed';
+import { Text, View } from '../Themed';
 import ProductListItem from './ProductListItem';
 
 

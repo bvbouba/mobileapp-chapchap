@@ -1,9 +1,9 @@
-import { useRouter, useSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { FC } from "react";
 import { Image, Pressable, StyleSheet } from 'react-native';
 import { getConfig } from "../../config";
 import { ProductFragment } from "../../saleor/api.generated";
-import { Divider, Text, View } from './../Themed';
+import { Divider, Text, View } from '../Themed';
 
 interface Props {
     product: ProductFragment
@@ -30,7 +30,7 @@ const ProductListItem: FC<Props> = ({ product }) => {
     const router = useRouter();
 
     //in order to fix flicking filter bug
-    const searchParams = useSearchParams();
+    const searchParams = useLocalSearchParams();
     const params = new URLSearchParams()
     Object.entries(searchParams).forEach(([key, value]) => {
         params.append(key, value as string)
