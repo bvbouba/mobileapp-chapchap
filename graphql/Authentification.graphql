@@ -1,0 +1,87 @@
+mutation sendCode($phoneNumber: String!) {
+  sendOtp(phoneNumber: $phoneNumber) {
+    error
+    message
+  }
+}
+
+mutation verifyCode($phoneNumber: String!, $otp: String!) {
+  verifyOtp(phoneNumber: $phoneNumber, otp: $otp) {
+    error
+    message
+  }
+}
+
+mutation userRegister($input: AccountRegisterInput!) {
+		accountRegister(input: $input) {
+			errors {
+				message
+				field
+				code
+			}
+		}
+	}
+
+mutation passwordResetRequestOTP($phoneNumber:String!){
+  requestPasswordResetOtp(phoneNumber:$phoneNumber){
+    errors{
+      message
+      code
+      field
+    }
+  }
+}
+
+mutation passwordResetVerificationOTP($code: String!, $phoneNumber:String!){
+  verifyPasswordResetOtp(otp:$code,phoneNumber:$phoneNumber){
+    errors{
+      message
+      code
+      field
+    }
+    token
+  }
+}
+
+
+mutation passwordSetting($email:String!, $password:String!, $token:String!){
+  setPassword(email:$email,password:$password,token:$token){
+    errors{
+      code
+      field
+      message
+    }
+    token
+  }
+}
+
+
+mutation CreateToken($email:String!,$password:String!){
+  tokenCreate(email: $email, password: $password) {
+    token
+    refreshToken
+    errors {
+      field
+      message
+    }
+  }
+}
+
+mutation refreshToken($refreshToken:String!){
+  tokenRefresh(refreshToken: $refreshToken) {
+    token
+  }
+}
+
+fragment UserDetails on User {
+	id
+	email
+  firstName
+  lastName
+}
+
+query CurrentUser {
+	me {
+		...UserDetails
+	}
+}

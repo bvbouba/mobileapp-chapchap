@@ -21,6 +21,8 @@ export {
 import { getConfig } from "../config";
 import SimpleBackHeader from "../components/layout/SimpleBackHeader";
 import TripResultHeader from "../components/layout/TripResultHeader";
+import { ConfirmationHeader } from "../components/layout/Confirmation.Header";
+import { AuthProvider } from "../lib/providers/authProvider";
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -72,6 +74,7 @@ function RootLayoutNav() {
   return (
     <>
       <ApolloProvider client={apolloClient}>
+      <AuthProvider>
         <ProductsProvider>
           <CartProvider>
             <OrderProvider>
@@ -84,18 +87,30 @@ function RootLayoutNav() {
 
                       header: () => <></>
                     }} />
+                    <Stack.Screen name="cart" 
+                     options={{
+                      header: () => <></>
+                    }}
+                    />
                     <Stack.Screen name="products/results" options={{
                       headerStyle: {
                         backgroundColor: colors.header,
                       }, header: () => <TripResultHeader />
                     }} />
                     <Stack.Screen name="products/details/[id]" options={baseHeaderProps} />
-                    <Stack.Screen name="checkout" options={{ ...baseHeaderProps, headerTitle: "Checkout", }} />
+                    <Stack.Screen name="checkout" options={{ ...baseHeaderProps,
+                      header: () => <></>,
+                      headerTitle: "Checkout", }} />
                     <Stack.Screen name="personalDetails" options={baseHeaderProps} />
                     <Stack.Screen name="shippingAddress" options={baseHeaderProps} />
                     <Stack.Screen name="billingAddress" options={baseHeaderProps} />
                     <Stack.Screen name="shippingMethods" options={baseHeaderProps} />
                     <Stack.Screen name="orderDetails/[id]" options={baseHeaderProps} />
+                    <Stack.Screen name="orderConfirmation"  options={{ ...baseHeaderProps,
+                      header: () => <ConfirmationHeader />,
+                      headerTitle: "Confirmation", }}
+                  
+                    />
                     <Stack.Screen name="modal" options={{ presentation: "modal" }} />
                   </Stack>
                 </ThemeProvider>
@@ -103,6 +118,7 @@ function RootLayoutNav() {
             </OrderProvider>
           </CartProvider>
         </ProductsProvider>
+        </AuthProvider>
       </ApolloProvider>
     </>
   );

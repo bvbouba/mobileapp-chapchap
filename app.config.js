@@ -16,6 +16,7 @@ module.exports = {
         stripePK: process.env.STRIPE_PK || "",
         channel: process.env.CHANNEL || "",
         locale: process.env.LOCALE?.split(",") || [],
+        appName: process.env.APP_NAME || "",
     },
     "plugins": [
         "expo-font",

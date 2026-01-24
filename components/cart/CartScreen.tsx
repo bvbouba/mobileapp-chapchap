@@ -6,6 +6,7 @@ import { Divider, PaddedView, Text, View, colors } from "../Themed";
 import { useCartContext } from "../../context/useCartContext";
 import { getTripInformation } from '../../utils/attribute';
 import { TripDetailsContent } from '../products/TripDetails/TripDetailsContent';
+import { PassengerModal } from './PassengerModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -82,14 +83,22 @@ const CartScreen = () => {
           <Ionicons name="arrow-back" size={24} color="#1E293B" />
         </TouchableOpacity>
         
-        <Text style={styles.headerTitle}>Trip summary</Text>
+        <Text style={styles.headerTitle}>Résumé du voyage</Text>
 
         <TouchableOpacity 
           style={styles.passengerTrigger} 
           onPress={() => setShowPassengerModal(true)}
         >
-          <Ionicons name="people" size={18} color={colors.blue} />
-          <Text style={styles.passengerCountText}>{passengerCount}</Text>
+          {/* Separate background for count */}
+          <View style={styles.countBadge}>
+             <Text style={styles.passengerCountText}>{passengerCount}</Text>
+          </View>
+          
+          <View style={styles.iconContainer}>
+            <Ionicons name="people" size={20} color={colors.blue} />
+            {/* The + sign positioned as a superscript index */}
+            <Text style={styles.plusSuperscript}>+</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -183,26 +192,13 @@ const CartScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Passenger Modal remains as it is specifically requested as a modal */}
-      <Modal visible={showPassengerModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Modifier les passagers</Text>
-            <View style={styles.counterContainer}>
-              <TouchableOpacity style={styles.circleBtn} onPress={() => handleUpdateQty(passengerCount - 1)}>
-                <Ionicons name="remove" size={24} color="#1E293B" />
-              </TouchableOpacity>
-              <Text style={styles.counterText}>{passengerCount}</Text>
-              <TouchableOpacity style={styles.circleBtn} onPress={() => handleUpdateQty(passengerCount + 1)}>
-                <Ionicons name="add" size={24} color="#1E293B" />
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.confirmBtn} onPress={() => setShowPassengerModal(false)}>
-              <Text style={styles.confirmBtnText}>Valider</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <PassengerModal 
+        isVisible={showPassengerModal}
+        onClose={() => setShowPassengerModal(false)}
+        count={passengerCount}
+        onConfirm={handleUpdateQty}
+      />
+
     </View>
   );
 };
@@ -221,19 +217,44 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9'
   },
   headerIconBtn: { width: 40 },
-  headerTitle: { fontSize: 16, fontWeight: '800', color: '#1E293B', textTransform: 'uppercase' },
+  headerTitle: { fontSize: 15, fontWeight: '800', color: '#1E293B', textTransform: 'uppercase' },
+  
   passengerTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
+    backgroundColor: '#F1F5F9', // Subtle grey for the whole button
+    paddingLeft: 4,
+    paddingRight: 10,
+    paddingVertical: 4,
+    borderRadius: 25,
+    gap: 8,
     borderWidth: 1,
-    borderColor: '#DBEAFE'
+    borderColor: '#E2E8F0'
   },
-  passengerCountText: { fontWeight: 'bold', color: colors.blue, fontSize: 14 },
+  countBadge: {
+    backgroundColor: colors.blue, // Primary color for the number
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  passengerCountText: { 
+    fontWeight: 'bold', 
+    color: 'white', 
+    fontSize: 13 
+  },
+  iconContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  plusSuperscript: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.blue,
+    marginTop: -4, // Moves it up like an index
+    marginLeft: 1,
+  },
   scroll: { flex: 1 },
   sectionTitle: { fontSize: 22, fontWeight: 'bold', color: '#0F172A', marginTop: 15,marginBottom:10 },
   routeSubtitle: { fontSize: 12, color: '#64748B', marginBottom: 20 },
@@ -285,14 +306,6 @@ const styles = StyleSheet.create({
   emptyCartText: { fontSize: 20, fontWeight: 'bold', color: '#1E293B', marginTop: 20 },
   goBackButton: { marginTop: 10, backgroundColor: '#F1F5F9', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
   goBackText: { color: colors.blue, fontWeight: 'bold' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: 'white', width: SCREEN_WIDTH * 0.85, borderRadius: 24, padding: 30, alignItems: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B', marginBottom: 30 },
-  counterContainer: { flexDirection: 'row', alignItems: 'center', gap: 40, marginBottom: 35 },
-  circleBtn: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0' },
-  counterText: { fontSize: 32, fontWeight: 'bold', color: '#1E293B' },
-  confirmBtn: { backgroundColor: colors.blue, width: '100%', height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  confirmBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
 });
 
 export default CartScreen;

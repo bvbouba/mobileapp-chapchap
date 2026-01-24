@@ -1,62 +1,45 @@
 import { useRouter } from "expo-router";
-import { Platform, SafeAreaView, StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { IconButton } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, colors } from "../Themed";
 import LoadingIndicator from "./LoadingIndicator";
 
-
 const SimpleBackHeader = () => {
   const router = useRouter();
-  const statusBarInset = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();
 
   return (
-    <>
-    <SafeAreaView style={{
-      ...styles.container,
-      height: styles.container.height,
-      marginTop: statusBarInset.top + 8
-    }}>
-        <View style={styles.backContainer}>
-          <IconButton
-            icon="arrow-left"
-            onPress={() => router.back()}
-            style={{  marginLeft: Platform.OS === "android" ? -10 : 0 }}
-            iconColor={colors.blue}
-          />
-
+    <View style={[styles.outerContainer, { paddingTop: insets.top }]}>
+      <View style={styles.content}>
+        <IconButton
+          icon="arrow-left"
+          onPress={() => router.back()}
+          style={styles.iconButton}
+          iconColor={colors.blue}
+          size={28}
+        />
       </View>
-      </SafeAreaView>
       <LoadingIndicator />
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    height: 50,
-    marginTop: 30,
-    marginBottom: 10,
-    display: "flex",
-    justifyContent: "center",
-    flexDirection: "column",
+  outerContainer: {
+    backgroundColor: '#FFFFFF', 
+    borderBottomWidth: 0, 
   },
-  backContainer: {
-    width: "100%",
-    height: 50,
-    marginTop: 30,
-    marginBottom: 10,
-    display: "flex",
-    justifyContent: "flex-start",
+  content: {
+    height: 56, 
     flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
   },
-  searchBarWrapperFull: {
-    width: "100%",
-  },
-  backButton: {
-    color: colors.blue,
+  iconButton: {
+    margin: 0,
+    marginLeft: Platform.OS === "android" ? -4 : 0,
   },
 });
 
-export default SimpleBackHeader
+export default SimpleBackHeader;

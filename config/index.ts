@@ -5,6 +5,7 @@ export const getConfig = () => {
         channel: Constants.expoConfig?.extra?.channel,
         stripePK: Constants.expoConfig?.extra?.stripePK,
         locale: Constants.expoConfig?.extra?.locale,
-        saleorApi: Constants.expoConfig?.extra?.saleorApi
+        saleorApi: Constants.expoConfig?.extra?.saleorApi,
+        appName:Constants.expoConfig?.extra?.appName
     }
 }

@@ -1,40 +1,67 @@
-import { StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, ScrollView, Modal, Platform } from 'react-native';
+import { AuthHero } from '../../components/account/AuthHero';
+import { UserProfile } from '../../components/account/UserProfile'; // Nouveau
+import { AccountMenu } from '../../components/account/AccountMenu';
+import { AccountFooter } from '../../components/account/AccountFooter';
+import { LoginForm } from '../../components/account/LoginForm';
+import { SignupForm } from '../../components/account/SignupForm';
+import { useAuth } from '../../lib/providers/authProvider';
 
-import { Divider, PaddedView, Text } from '../../components/Themed';
-import OrdersList from '../../components/orders/OrdersList';
-import { ScrollView } from 'react-native-gesture-handler';
+export default function AccountScreen() {
+  const { authenticated, user, logout } = useAuth(); // On récupère aussi logout
+  const [modalVisible, setModalVisible] = useState(false);
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
 
-export default function TabTwoScreen() {
+  const openAuth = (authMode: 'login' | 'signup') => {
+    setMode(authMode);
+    setModalVisible(true);
+  };
+
   return (
-    <View style={styles.scrollContainer}>
-      <ScrollView style={styles.scroll}>
-        <PaddedView>
-          <Text style={styles.title}>Your Orders</Text>
-          <Text style={styles.subTitle}>View and manage your orders</Text>
-        </PaddedView>
-        <Divider />
-        <OrdersList />
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        
+        {/* Logique conditionnelle pour le Header */}
+        {authenticated ? (
+          <UserProfile user={user} />
+        ) : (
+          <AuthHero onOpenAuth={openAuth} />
+        )}
+        
+        {/* Le menu reste visible, mais on pourra y ajouter "Déconnexion" si auth */}
+        <AccountMenu isAuthenticated={authenticated} onLogout={logout} />
+
+        <AccountFooter />
+
       </ScrollView>
+
+      <Modal 
+          visible={modalVisible} 
+          animationType="slide" 
+          presentationStyle="fullScreen"
+          onRequestClose={() => setModalVisible(false)}
+      >
+          {mode === 'login' ? (
+              <LoginForm 
+                  onClose={() => setModalVisible(false)} 
+                  onSwitchToSignup={() => setMode('signup')} 
+              />
+          ) : (
+              <SignupForm 
+                  onClose={() => setModalVisible(false)} 
+                  onSwitchToLogin={() => setMode('login')} 
+              />
+          )}
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scroll: {
-    width: "100%",
-  },
-  title: {
-    textAlign: "left",
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8
-  },
-  subTitle: {
-    marginBottom: 16
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  scrollContent: {
+    padding: 20,
+    paddingTop: Platform.OS === 'ios' ? 70 : 40,
   }
 });

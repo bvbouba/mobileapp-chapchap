@@ -4,6 +4,8 @@ import { useColorScheme, StyleSheet } from 'react-native';
 
 import { Text, View } from '../../components/Themed';
 import Colors from '../../constants/Colors';
+import SearchHeader from '../../components/layout/SearchHeader';
+import { Header } from '../../components/layout/Header';
 
 /**
  * You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
@@ -39,10 +41,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="cart"
+        name="trips"
         options={{
           title: 'Mes Voyages',
-          headerShown: false,
+          headerShown: true,
+          header: () => <Header  title="Mes Voyages"/>,
           tabBarIcon: ({ color }) => {
             return <TabBarIcon name="ticket"
               color={color}
@@ -54,7 +57,8 @@ export default function TabLayout() {
         name="account"
         options={{
           title: 'Profil',
-          headerShown: false,
+          headerShown: true,
+          header: () => <Header  title="Profil"/>,
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
         }}
       />
