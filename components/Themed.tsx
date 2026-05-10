@@ -67,11 +67,18 @@ export function Divider(props: DividerProps) {
 }
 
 export const colors = {
-  dividerGrey: 'rgb(216, 216, 216)',
-  textInputGreyBackground: '#F2F4F5',
-  textInputGrey: '#6C7072',
-  greyText: 'rgb(153, 153, 153)',
-  blue: "#007AFF",
-  header: "red",
-  red:"#E91E63"
-}
+  primary: "#EB1700",
+  secondary: "#02838A",
+  text: "#000000",
+  background: "#FFFFFF",
+  grey100: "#F1F1F1",
+  grey300: "#D7D8DB",
+  grey500: "#606060",
+  dividerGrey: "#D7D8DB",
+  textInputGreyBackground: "#F1F1F1",
+  textInputGrey: "#606060",
+  greyText: "#606060",
+  blue: "#02838A",
+  header: "#FFFFFF",
+  red: "#EB1700",
+};

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { View, Text, colors } from '../Themed';
+import { StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text } from "../Themed";
 import { useCheckoutAddPromoCodeMutation, LanguageCodeEnum } from '../../checkout/graphql';
+import { EllipsisLoader } from '../EllipsisLoader';
 
 interface PromoCodeAddProps {
     checkoutId: string;
@@ -45,7 +46,7 @@ export const PromoCodeAdd: React.FC<PromoCodeAddProps> = ({ checkoutId, onSucces
                     value={promoCode}
                     onChangeText={setPromoCode}
                     autoCapitalize="characters"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#606060"
                 />
                 {promoCode.length > 0 && (
                     <TouchableOpacity 
@@ -54,7 +55,7 @@ export const PromoCodeAdd: React.FC<PromoCodeAddProps> = ({ checkoutId, onSucces
                         disabled={loading}
                     >
                         {loading ? (
-                            <ActivityIndicator size="small" color={colors.blue} />
+                            <EllipsisLoader color="#EB1700" dotSize={5} />
                         ) : (
                             <Text style={styles.applyBtnText}>Appliquer</Text>
                         )}
@@ -68,33 +69,32 @@ export const PromoCodeAdd: React.FC<PromoCodeAddProps> = ({ checkoutId, onSucces
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        paddingVertical: 14,
+        backgroundColor: "#FFFFFF",
     },
     inputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F8FAFC',
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#F1F1F1",
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: "#D7D8DB",
         paddingHorizontal: 12,
         height: 50,
     },
     input: {
         flex: 1,
         fontSize: 14,
-        color: '#1E293B',
+        color: "#000000",
+        fontFamily: "TTNormsPro-Regular",
     },
     applyBtn: {
         paddingHorizontal: 12,
         paddingVertical: 6,
     },
     applyBtnText: {
-        color: colors.blue,
-        fontWeight: 'bold',
+        color: "#02838A",
         fontSize: 14,
+        fontFamily: "TTNormsPro-Bold",
     },
 });

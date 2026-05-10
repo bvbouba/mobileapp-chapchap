@@ -1,7 +1,8 @@
 // components/GlobalLoadingOverlay.tsx
 import React from 'react';
-import { View, StyleSheet, Modal, ActivityIndicator, Image } from 'react-native';
+import { View, StyleSheet, Modal, Image } from 'react-native';
 import { Text } from './Themed';
+import { EllipsisLoader } from './EllipsisLoader';
 
 interface Props {
   visible: boolean;
@@ -9,46 +10,81 @@ interface Props {
 }
 
 export const GlobalLoadingOverlay = ({ visible, companyLogo }: Props) => (
-  <Modal transparent visible={visible} animationType="fade">
-    <View style={styles.overlay}>
-      <View style={styles.container}>
-        <View style={styles.logoRow}>
-          {/* Your Brand Logo */}
-          <View style={styles.logoCircle}>
-             <Image source={require('../assets/images/logo.png')} style={styles.brandImg} />
+  <Modal
+    transparent
+    visible={visible}
+    animationType="fade"
+    statusBarTranslucent
+    navigationBarTranslucent
+  >
+    <View style={styles.modalRoot}>
+      <View style={styles.overlay}>
+        <View style={styles.container}>
+          <View style={styles.logoRow}>
+            <View style={styles.logoCircle}>
+               <Image source={require('../assets/images/logo.png')} style={styles.brandImg} />
+            </View>
+
+            <View style={{ marginHorizontal: 15 }}>
+              <EllipsisLoader color="#EB1700" dotSize={7} />
+            </View>
+
+            <View style={[styles.logoCircle, { backgroundColor: '#F8FAFC' }]}>
+              {companyLogo ? (
+                <Image source={{ uri: companyLogo }} style={styles.partnerImg} />
+              ) : (
+                <EllipsisLoader color="#94A3B8" dotSize={5} />
+              )}
+            </View>
           </View>
 
-          {/* Animated Dots / Activity Indicator */}
-          <ActivityIndicator size="small" color="#E11D48" style={{ marginHorizontal: 15 }} />
-
-          {/* Partner Logo */}
-          <View style={[styles.logoCircle, { backgroundColor: '#F8FAFC' }]}>
-            {companyLogo ? (
-              <Image source={{ uri: companyLogo }} style={styles.partnerImg} />
-            ) : (
-              <ActivityIndicator size="small" color="#94A3B8" />
-            )}
-          </View>
+          <Text style={styles.title}>Verification de disponibilite</Text>
+          <Text style={styles.subtitle}>Nous verifions la disponibilite des billets...</Text>
         </View>
-
-        <Text style={styles.title}>Vérification des places</Text>
-        <Text style={styles.subtitle}>Nous sécurisons votre trajet auprès de notre partenaire...</Text>
       </View>
     </View>
   </Modal>
 );
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  container: { backgroundColor: 'white', borderRadius: 24, padding: 30, alignItems: 'center', width: '85%' },
+  modalRoot: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.56)',
+  },
+  overlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  container: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#D7D8DB',
+    padding: 24,
+    alignItems: 'center',
+    width: '86%',
+  },
   logoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 25 },
   logoCircle: { 
-    width: 70, height: 70, borderRadius: 35, backgroundColor: 'white', 
-    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9',
+    width: 64, height: 64, borderRadius: 32, backgroundColor: 'white', 
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#D7D8DB',
     overflow: 'hidden'
   },
   brandImg: { width: 40, height: 40, resizeMode: 'contain' },
-  partnerImg: { width: 50, height: 50, resizeMode: 'contain' },
-  title: { fontSize: 18, fontWeight: '800', color: '#0F172A', marginBottom: 8 },
-  subtitle: { fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 20 },
+  partnerImg: { width: 46, height: 46, resizeMode: 'contain' },
+  title: {
+    fontSize: 17,
+    color: '#000000',
+    marginBottom: 8,
+    fontFamily: 'TTNormsPro-Bold',
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#606060',
+    textAlign: 'center',
+    lineHeight: 20,
+    fontFamily: 'TTNormsPro-Regular',
+  },
 });

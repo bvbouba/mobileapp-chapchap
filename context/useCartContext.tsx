@@ -3,7 +3,6 @@ import { Alert } from "react-native";
 import { getConfig } from "../config";
 import { 
     CheckoutFragment, 
-    useCheckoutLinesAddMutation, 
     useCheckoutLinesUpdateMutation, 
     useCreateCheckoutMutation, 
     useGetCheckoutByIdLazyQuery,
@@ -21,7 +20,7 @@ interface CartContextModel {
     removeCart: () => Promise<void>;
     setCart: (cart: CheckoutFragment) => void;
     addItem: (variantId: string) => Promise<void>;
-    updateItemQuantity: (variantId: string, quantity: number) => void;
+    updateItemQuantity: (lineId: string, quantity: number) => Promise<void>;
 }
 
 const CartContext = createContext<CartContextModel>({
@@ -32,7 +31,7 @@ const CartContext = createContext<CartContextModel>({
     removeCart: () => Promise.resolve(),
     setCart: () => Function,
     refreshCart: () => Promise.resolve(undefined),
-    updateItemQuantity: () => Function,
+    updateItemQuantity: () => Promise.resolve(),
 });
 
 export const useCartContext = () => useContext(CartContext);
@@ -130,19 +129,44 @@ export const CartProvider: FC<PropsWithChildren> = ({ children }) => {
     };
 
     const updateItemQuantity = async (lineId: string, quantity: number) => {
+        if (!cart?.id) return;
         setLoading(true);
-        const updatedCart = await updateLineMutation({
-            variables: {
-                id: cart?.id as string,
-                lines: [{ lineId, quantity }]
+        try {
+            const updatedCart = await updateLineMutation({
+                variables: {
+                    id: cart.id,
+                    lines: [{ lineId, quantity }]
+                }
+            });
+            
+            const errors = updatedCart.data?.checkoutLinesUpdate?.errors ?? [];
+            if (errors.length > 0) {
+                const firstError = errors[0];
+                if (firstError?.code === "INSUFFICIENT_STOCK") {
+                    Alert.alert(
+                        "Stock insuffisant",
+                        "Impossible d'ajouter plus de passagers: il n'y a pas assez de places disponibles pour ce trajet."
+                    );
+                } else {
+                    const msg = firstError?.message || "Impossible de mettre a jour le panier.";
+                    Alert.alert("Erreur", msg);
+                }
+                return;
             }
-        });
 
-        if (updatedCart.data?.checkoutLinesUpdate?.errors?.length) {
-            Alert.alert("Error", "There was an error updating your cart");
+            const nextCheckout = updatedCart.data?.checkoutLinesUpdate?.checkout;
+            if (nextCheckout) {
+                setCart(nextCheckout as CheckoutFragment);
+            } else {
+                // Do not clear local cart on transient backend response gaps.
+                await refreshCart();
+            }
+        } catch (error) {
+            console.error("Error updating cart quantity:", error);
+            Alert.alert("Erreur", "Impossible de mettre a jour le panier.");
+        } finally {
+            setLoading(false);
         }
-        setCart(updatedCart.data?.checkoutLinesUpdate?.checkout as CheckoutFragment);
-        setLoading(false);
     };
 
     const refreshCart = async () => {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, colors } from '../Themed';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { ProductVariantListItemFragment } from '../../saleor/api.generated';
@@ -7,6 +7,8 @@ import { useCartContext } from '../../context/useCartContext';
 import { useRouter } from 'expo-router';
 import { GlobalLoadingOverlay } from '../GlobalLoadingOverlay';
 import { TripDetailsModal } from './TripDetails/TripDetailsModal';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
+import { EllipsisLoader } from '../EllipsisLoader';
 
 interface Props {
   variant: ProductVariantListItemFragment;
@@ -15,7 +17,7 @@ interface Props {
 export const ProductElement = ({ variant }: Props) => {
   const attributes = variant.attributes || [];
   const [showDetails, setShowDetails] = useState(false);
-  const { addItem, loading } = useCartContext();
+  const { addItem } = useCartContext();
   const router = useRouter();
   const [isActionLoading, setIsActionLoading] = useState(false);
 
@@ -88,7 +90,7 @@ export const ProductElement = ({ variant }: Props) => {
 
   const price = variant.pricing?.price?.gross;
 
-  const logoUrl = variant.product?.thumbnail?.url;
+  const logoUrl = resolveMediaUrl(variant.product?.thumbnail?.url);
   
   return (
     <View>
@@ -96,7 +98,7 @@ export const ProductElement = ({ variant }: Props) => {
         {/* HEADER: Adjusted margin for vertical space */}
         <View style={styles.header}>
           <View style={styles.companyRow}>
-            <FontAwesome5 name="bus" size={12} color="#64748B" style={{ marginRight: 6 }} />
+            <FontAwesome5 name="bus" size={12} color="#606060" style={{ marginRight: 6 }} />
             <Text style={styles.companyName}>{company ?? "Compagnie"}</Text>
           </View>
           <Text style={styles.priceText}>
@@ -140,11 +142,11 @@ export const ProductElement = ({ variant }: Props) => {
         {/* FOOTER: Reduced padding/margin */}
         <View style={styles.footer}>
           <TouchableOpacity 
-            style={[styles.detailsBtn, { backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }]} 
+            style={[styles.detailsBtn, { backgroundColor: '#F1F1F1', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }]} 
             onPress={() => setShowDetails(true)}
           >
             <Text style={styles.detailsBtnText}>Détails</Text>
-            <Ionicons name="chevron-down" size={12} color={colors.blue} />
+            <Ionicons name="chevron-down" size={12} color="#02838A" />
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.bookButton, isActionLoading && { opacity: 0.7 }]} 
@@ -152,7 +154,7 @@ export const ProductElement = ({ variant }: Props) => {
             disabled={isActionLoading}
           >
              {isActionLoading ? (
-               <ActivityIndicator size="small" color="white" />
+               <EllipsisLoader color="#FFFFFF" dotSize={6} />
              ) : (
                <Text style={styles.bookText}>Réserver</Text>
              )}
@@ -186,12 +188,12 @@ export const ProductElement = ({ variant }: Props) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'white',
-    borderRadius: 12, // Slightly tighter corners
-    padding: 12, // Reduced padding
-    marginBottom: 8, // Reduced margin
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#D7D8DB',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -205,8 +207,8 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   companyRow: { flexDirection: 'row', alignItems: 'center' },
-  companyName: { fontSize: 12, color: '#64748B', fontWeight: '600' },
-  priceText: { fontSize: 16, fontWeight: '800', color: colors.blue },
+  companyName: { fontSize: 12, color: '#606060', fontFamily: 'TTNormsPro-Regular' },
+  priceText: { fontSize: 18, color: '#02838A', fontFamily: 'TTNormsPro-Bold' },
 
   tripBody: {
     flexDirection: 'row',
@@ -218,15 +220,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   timeText: {
-    fontSize: 18, // Reduced from 22
-    fontWeight: '700',
-    color: '#1E293B',
+    fontSize: 18,
+    color: '#000000',
+    fontFamily: 'TTNormsPro-Bold',
     marginBottom: 2
   },
   stationText: {
-    fontSize: 11, // Reduced from 12
-    color: '#94A3B8',
-    fontWeight: '500'
+    fontSize: 11,
+    color: '#606060',
+    fontFamily: 'TTNormsPro-Regular',
   },
   footer: {
     flexDirection: 'row',
@@ -235,15 +237,15 @@ const styles = StyleSheet.create({
     marginTop: 8, // Reduced from 15
     paddingTop: 8, // Reduced from 12
     borderTopWidth: 1,
-    borderTopColor: '#F8FAFC',
+    borderTopColor: '#D7D8DB',
   },
   bookButton: {
-    backgroundColor: colors.red,
-    paddingVertical: 6, // Squeezed padding
+    backgroundColor: '#EB1700',
+    paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 999,
   },
-  bookText: { color: 'white', fontWeight: 'bold', fontSize: 13 },
+  bookText: { color: '#FFFFFF', fontSize: 13, fontFamily: 'TTNormsPro-Bold' },
   centerColumn: {
     flex: 1.2,
     justifyContent: 'center',
@@ -264,8 +266,8 @@ const styles = StyleSheet.create({
   },
   durationLabel: {
     fontSize: 9, // Slightly smaller
-    color: '#64748B',
-    fontWeight: '700',
+    color: '#606060',
+    fontFamily: 'TTNormsPro-Bold',
     textTransform: 'lowercase',
   },
   arrowHead: {
@@ -278,5 +280,5 @@ const styles = StyleSheet.create({
     marginLeft: -5,
   },
   detailsBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  detailsBtnText: { color: colors.blue, fontSize: 12, fontWeight: '600' },
+  detailsBtnText: { color: '#02838A', fontSize: 12, fontFamily: 'TTNormsPro-Bold' },
 });

@@ -1,11 +1,12 @@
 import React, { useState, useRef } from "react";
-import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { StyleSheet, View, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { Text, colors } from "../Themed";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { isValidPhoneNumber } from "libphonenumber-js";
 import { useAuth } from "../../lib/providers/authProvider";
 import PhoneInput from "react-native-phone-number-input";
 import { getConfig } from "../../config";
+import { EllipsisLoader } from "../EllipsisLoader";
 
 const appName = getConfig().appName;
 
@@ -94,7 +95,7 @@ export const LoginForm: React.FC<Props> = ({ onClose, onSwitchToSignup }) => {
                         disabled={authLoading}
                     >
                         {authLoading ? (
-                            <ActivityIndicator color="#fff" />
+                            <EllipsisLoader color="#FFFFFF" dotSize={6} />
                         ) : (
                             <Text style={styles.submitBtnText}>Se connecter</Text>
                         )}

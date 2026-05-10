@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, View, TouchableOpacity, Platform, Alert } from 'react-native';
-import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text } from '../Themed';
 import { AssignedAttributeValueFragment, useGetAttributeBySlugQuery } from '../../saleor/api.generated';
 import { mapEdgesToItems } from '../../utils/maps';
@@ -12,19 +12,56 @@ const HeroSearch = () => {
   const [selectedOrigin, setSelectedOrigin] = useState<AssignedAttributeValueFragment>();
   const [selectedDestination, setSelectedDestination] = useState<AssignedAttributeValueFragment>();
   const [travelDate, setTravelDate] = useState(new Date());
+  const [hasSelectedDate, setHasSelectedDate] = useState(true);
 
   const [modalType, setModalType] = useState<'origin' | 'destination' | 'date' | null>(null);
 
-  const { data: departureData } = useGetAttributeBySlugQuery({ variables: { slug: 'departure-city' } });
-  const { data: arrivalData } = useGetAttributeBySlugQuery({ variables: { slug: 'arrival-city' } });
-
+  const {
+    data: departureData,
+    loading: loadingDepartureCities,
+    error: departureCitiesError,
+  } = useGetAttributeBySlugQuery({
+    variables: { slug: 'departure-city' },
+    skip: modalType !== 'origin',
+    fetchPolicy: 'cache-first',
+  });
+  const {
+    data: arrivalData,
+    loading: loadingArrivalCities,
+    error: arrivalCitiesError,
+  } = useGetAttributeBySlugQuery({
+    variables: { slug: 'arrival-city' },
+    skip: modalType !== 'destination',
+    fetchPolicy: 'cache-first',
+  });
   const departureCities = mapEdgesToItems(departureData?.attribute?.choices);
   const arrivalCities = mapEdgesToItems(arrivalData?.attribute?.choices);
+  const selectedOriginSlug = selectedOrigin?.slug;
+  const selectedDestinationSlug = selectedDestination?.slug;
+  const originOptions = departureCities.filter((city) => city.slug !== selectedDestinationSlug);
+  const destinationOptions = arrivalCities.filter((city) => city.slug !== selectedOriginSlug);
 
   const handleSwapCities = () => {
     const tempOrigin = selectedOrigin;
     setSelectedOrigin(selectedDestination);
     setSelectedDestination(tempOrigin);
+  };
+
+  const formatFrenchDate = (value: Date) => {
+    const weekday = value.toLocaleDateString("fr-FR", { weekday: "short" });
+    const dayMonth = value.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+    const weekdayFormatted = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+    const parts = dayMonth.split(" ");
+    if (parts.length < 2) return `${weekdayFormatted} ${dayMonth}`;
+    const capitalizedMonth = parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
+    return `${weekdayFormatted} ${parts[0]} ${capitalizedMonth}`;
+  };
+
+  const formatLocalDateKey = (value: Date) => {
+    const y = value.getFullYear();
+    const m = `${value.getMonth() + 1}`.padStart(2, "0");
+    const d = `${value.getDate()}`.padStart(2, "0");
+    return `${y}-${m}-${d}`;
   };
 
   const handleSearch = () => {
@@ -33,7 +70,7 @@ const HeroSearch = () => {
       return;
     }
 
-    const formattedDate = travelDate.toISOString().split('T')[0];
+    const formattedDate = formatLocalDateKey(travelDate);
 
     router.push({
       pathname: '/products/results', // Ensure this matches your file path
@@ -56,7 +93,7 @@ const HeroSearch = () => {
         <View style={{ position: 'relative' }}>
           {/* Origin Trigger */}
           <TouchableOpacity style={styles.inputWrapper} onPress={() => setModalType('origin')}>
-            <MaterialCommunityIcons name="map-marker-outline" size={20} color={selectedOrigin ? "#E91E63" : "#666"} />
+            <Ionicons name="location-outline" size={20} color={selectedOrigin ? "#EB1700" : "#606060"} />
             <Text style={selectedOrigin ? styles.dateTextActive : styles.inputPlaceholder}>
               {selectedOrigin ? selectedOrigin.name : "De : ville de départ"}
             </Text>
@@ -64,12 +101,12 @@ const HeroSearch = () => {
 
           {/* Swap Button - Positioned Absolutely */}
           <TouchableOpacity style={styles.swapButton} onPress={handleSwapCities} activeOpacity={0.8}>
-            <MaterialCommunityIcons name="swap-vertical" size={24} color="#E91E63" />
+            <MaterialCommunityIcons name="swap-vertical" size={24} color="#EB1700" />
           </TouchableOpacity>
 
           {/* Destination Trigger */}
           <TouchableOpacity style={styles.inputWrapper} onPress={() => setModalType('destination')}>
-            <MaterialCommunityIcons name="map-marker-check-outline" size={20} color={selectedDestination ? "#E91E63" : "#666"} />
+            <Ionicons name="flag-outline" size={20} color={selectedDestination ? "#EB1700" : "#606060"} />
             <Text style={selectedDestination ? styles.dateTextActive : styles.inputPlaceholder}>
               {selectedDestination ? selectedDestination.name : "À : destination"}
             </Text>
@@ -78,9 +115,9 @@ const HeroSearch = () => {
 
         {/* Date Trigger */}
         <TouchableOpacity style={styles.inputWrapper} onPress={() => setModalType('date')}>
-          <FontAwesome5 name="calendar-alt" size={18} color="#666" />
-          <Text style={styles.dateTextActive}>
-            {travelDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+          <Ionicons name="calendar-outline" size={20} color={hasSelectedDate ? "#EB1700" : "#606060"} />
+          <Text style={hasSelectedDate ? styles.dateTextActive : styles.inputPlaceholder}>
+            {hasSelectedDate ? formatFrenchDate(travelDate) : "Date du voyage"}
           </Text>
         </TouchableOpacity>
 
@@ -96,34 +133,55 @@ const HeroSearch = () => {
       <CitySelectionModal
         visible={modalType === 'origin'}
         title="Ville de départ"
-        cities={departureCities}
+        cities={originOptions}
+        loading={loadingDepartureCities}
+        errorMessage={departureCitiesError?.message}
         onClose={() => setModalType(null)}
-        onSelect={(city) => { setSelectedOrigin(city); setModalType(null); }}
+        onSelect={(city) => {
+          if (city.slug === selectedDestinationSlug) {
+            Alert.alert("Ville invalide", "La ville de départ doit être différente de la destination.");
+            return;
+          }
+          setSelectedOrigin(city);
+          setModalType(null);
+        }}
       />
 
       <CitySelectionModal
         visible={modalType === 'destination'}
         title="Destination"
-        cities={arrivalCities}
+        cities={destinationOptions}
+        loading={loadingArrivalCities}
+        errorMessage={arrivalCitiesError?.message}
         onClose={() => setModalType(null)}
-        onSelect={(city) => { setSelectedDestination(city); setModalType(null); }}
+        onSelect={(city) => {
+          if (city.slug === selectedOriginSlug) {
+            Alert.alert("Ville invalide", "La destination doit être différente de la ville de départ.");
+            return;
+          }
+          setSelectedDestination(city);
+          setModalType(null);
+        }}
       />
 
       <DateSelectionModal
         visible={modalType === 'date'}
         date={travelDate}
         onClose={() => setModalType(null)}
-        onSelect={(d) => setTravelDate(d)}
+        onSelect={(d) => {
+          setTravelDate(d);
+          setHasSelectedDate(true);
+        }}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  bottomHalf: { flex: 1.2, paddingHorizontal: 20, backgroundColor: '#fff' },
+  bottomHalf: { flex: 1.2, paddingHorizontal: 20, backgroundColor: '#FFFFFF' },
   searchCard: {
     marginTop: -40,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
     shadowColor: "#000",
@@ -133,7 +191,12 @@ const styles = StyleSheet.create({
     elevation: 5,
     zIndex: 10,
   },
-  searchTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 20, color: '#333' },
+  searchTitle: {
+    fontSize: 22,
+    marginBottom: 20,
+    color: '#000000',
+    fontFamily: 'TTNormsPro-Bold',
+  },
   inputContainer: { zIndex: 5, position: 'relative' }, // Important for suggestion overlay
   inputIcon: { marginRight: 10 },
   input: { flex: 1, fontSize: 16, color: '#333' },
@@ -155,16 +218,20 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
   },
   suggestionText: { marginLeft: 10, fontSize: 15, color: '#444' },
-  dateText: { fontSize: 16, color: '#999' },
+  dateText: { fontSize: 16, color: '#606060', fontFamily: 'TTNormsPro-Regular' },
   searchButton: {
-    backgroundColor: '#E91E63',
+    backgroundColor: '#EB1700',
     height: 55,
-    borderRadius: 8,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
   },
-  searchButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  searchButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'TTNormsPro-Bold',
+  },
   modalContainer: {
     flex: 1,
     backgroundColor: '#fff',
@@ -177,15 +244,15 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#D7D8DB',
   },
   backButton: {
     padding: 5,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    color: '#000000',
+    fontFamily: 'TTNormsPro-Bold',
   },
   pickerWrapper: {
     flex: 1,
@@ -196,64 +263,64 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#D7D8DB',
   },
   confirmButton: {
-    backgroundColor: '#E91E63',
+    backgroundColor: '#EB1700',
     height: 55,
-    borderRadius: 12,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
   },
   confirmButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'TTNormsPro-Bold',
   },
   inputPlaceholder: {
     flex: 1,
     fontSize: 16,
-    color: '#999', // Gray color like a real placeholder
+    color: '#606060',
     marginLeft: 10,
+    fontFamily: 'TTNormsPro-Regular',
   },
   dateTextActive: {
     flex: 1,
     fontSize: 16,
-    color: '#333', // Darker color for the selected date
+    color: '#000000',
     marginLeft: 10,
+    fontFamily: 'TTNormsPro-Regular',
   },
-  // If you used inputWrapper in the previous step, make sure it looks like this:
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
+    borderColor: '#D7D8DB',
+    borderRadius: 14,
     marginBottom: 15,
     paddingHorizontal: 12,
     height: 50,
-    backgroundColor: '#fff',
+    backgroundColor: '#F1F1F1',
   },
   swapButton: {
     position: 'absolute',
     right: 20,
-    top: '50%', // Move to middle of the container
-    marginTop: -22, // Half of height (plus margin adjustment) to center between inputs
-    backgroundColor: '#fff',
+    top: '50%',
+    marginTop: -22,
+    backgroundColor: '#FFFFFF',
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 20,
-    // Shadow/Elevation to make it pop
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#D7D8DB',
   },
 });
 

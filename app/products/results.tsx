@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { 
   useGetAttributeValueByIdQuery, 
@@ -7,6 +7,7 @@ import {
   AttributeFilterFragment 
 } from '../../saleor/api.generated';
 import { Text } from '../../components/Themed';
+import { EllipsisLoader } from '../../components/EllipsisLoader';
 import { FilteredProductList } from '../../components/products/FilteredProductList';
 import { mapEdgesToItems } from '../../utils/maps';
 
@@ -73,26 +74,38 @@ export default function ResultsScreen() {
 
   if (loadingO || loadingD || loadingA) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#E91E63" />
-        <Text style={{ marginTop: 10 }}>Préparation de vos trajets...</Text>
+      <View style={styles.container}>
+        <View style={styles.topBarLoader}>
+          <EllipsisLoader color="#EB1700" />
+        </View>
+        <View style={styles.center}>
+          <Text style={{ marginTop: 10, fontFamily: "TTNormsPro-Regular", color: "#606060" }}>Préparation de vos trajets...</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <FilteredProductList
         attributeFiltersData={transformedAttributes}
         originData={originData}
         destinationData={destinationData}
         selectedDate={date}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  topBarLoader: {
+    height: 56,
+    borderBottomWidth: 1,
+    borderBottomColor: "#D7D8DB",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' }
 });

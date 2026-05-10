@@ -17,6 +17,9 @@ module.exports = {
         channel: process.env.CHANNEL || "",
         locale: process.env.LOCALE?.split(",") || [],
         appName: process.env.APP_NAME || "",
+        /** Minutes before departure after which the trip can no longer be sold (default 60). */
+        bookingCutoffMinutesBeforeDeparture:
+            parseInt(process.env.BOOKING_CUTOFF_MINUTES_BEFORE_DEPARTURE ?? "60", 10) || 60,
     },
     "plugins": [
         "expo-font",

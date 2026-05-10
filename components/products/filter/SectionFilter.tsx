@@ -48,7 +48,10 @@ export const SectionFilter = ({ activeFilters, clearFilters, attributeFiltersDat
 };
 
 const styles = StyleSheet.create({
-  container: { paddingBottom: 40 },
+  container: {
+    backgroundColor: "#FFFFFF",
+    paddingBottom: 24,
+  },
   resetBtn: { marginBottom: 20 },
-  resetText: { color: '#E91E63', fontWeight: '600' }
+  resetText: { color: "#E91E63", fontWeight: "600" },
 });

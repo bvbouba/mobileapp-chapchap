@@ -1,157 +1,190 @@
-import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { View, Text, Divider, PaddedView, colors } from '../Themed';
-import { getTripInformation } from '../../utils/attribute';
+import React, { useState } from "react";
+import { StyleSheet, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { View, Text, Divider, PaddedView } from "../Themed";
+import { getTripInformation } from "../../utils/attribute";
+
+const LINK_GREY = "#D7D8DB";
+const DOT_GREY = "#B0B0B0";
 
 interface SummaryProps {
-    lines: any[];
-    totalPrice?: {
-        gross: { currency: string; amount: number; };
-    };
-    editable?: boolean;
-    voucherCode?: string | null;
-    giftCards?: any[];
-    shippingPrice?: any;
+  lines: any[];
+  totalPrice?: {
+    gross: { currency: string; amount: number };
+  };
+  editable?: boolean;
+  voucherCode?: string | null;
+  giftCards?: any[];
+  shippingPrice?: any;
 }
 
-export const Summary: React.FC<SummaryProps> = ({
-    lines,
-    totalPrice,
-    editable = true,
-}) => {
-    const [isOpen, setIsOpen] = useState(true);
+export const Summary: React.FC<SummaryProps> = ({ lines, totalPrice }) => {
+  const [isOpen, setIsOpen] = useState(true);
 
-    // Assuming we take trip info from the first line for the summary
-    const line = lines?.[0];
-    const {
-        departureCity,
-        departureTimeStr,
-        arrivalCity,
-        arrivalTimeStr,
-        formattedDate,
-        departureStation,
-        arrivalStation
-    } = getTripInformation({ attributes: line?.variant?.attributes || [] });
+  const line = lines?.[0];
+  const {
+    departureCity,
+    departureTimeStr,
+    arrivalCity,
+    arrivalTimeStr,
+    formattedDate,
+    departureStation,
+    arrivalStation,
+  } = getTripInformation({ attributes: line?.variant?.attributes || [] });
 
-    const passengerCount = lines.reduce((acc, curr) => acc + (curr.quantity || 0), 0);
-    const amount = totalPrice?.gross?.amount ?? 0;
-    const currency = totalPrice?.gross?.currency ?? "XOF";
+  const passengerCount = lines.reduce((acc, curr) => acc + (curr.quantity || 0), 0);
+  const amount = totalPrice?.gross?.amount ?? 0;
+  const currency = totalPrice?.gross?.currency ?? "XOF";
 
-    return (
-        <View style={styles.container}>
-            {/* Summary Header (Toggle) */}
-            <TouchableOpacity 
-                style={styles.header} 
-                onPress={() => setIsOpen(!isOpen)}
-                activeOpacity={0.7}
-            >
-                <Text style={styles.title}>Résumé du voyage</Text>
-                <Ionicons 
-                    name={isOpen ? "chevron-up" : "chevron-down"} 
-                    size={20} 
-                    color="#1E293B" 
-                />
-            </TouchableOpacity>
+  return (
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.header}
+        onPress={() => setIsOpen(!isOpen)}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.title}>Résumé du voyage</Text>
+        <Ionicons
+          name={isOpen ? "chevron-up" : "chevron-down"}
+          size={18}
+          color="#606060"
+        />
+      </TouchableOpacity>
 
-            {isOpen && (
-                <PaddedView style={styles.content}>
-                    {/* Departure Info */}
-                    <View style={styles.tripPoint}>
-                        <View style={styles.dot} />
-                        <View>
-                            <Text style={styles.cityLabel}>Départ: {departureCity?.toUpperCase()}</Text>
-                            <Text style={styles.timeLabel}>{departureTimeStr} • {formattedDate}</Text>
-                            <Text style={styles.stationLabel}>{departureStation}</Text>
-                        </View>
-                    </View>
+      {isOpen && (
+        <PaddedView style={styles.content}>
+          <View style={styles.routeRow}>
+            <View style={styles.routeRail}>
+              <View style={styles.dot} />
+              <View style={styles.segmentLine} />
+              <View style={styles.dot} />
+            </View>
 
-                    {/* Path Line */}
-                    <View style={styles.verticalLine} />
+            <View style={styles.routeBody}>
+              <View style={styles.routeStop}>
+                <Text style={styles.cityLabel}>Départ: {departureCity?.toUpperCase()}</Text>
+                <Text style={styles.timeLabel}>
+                  {departureTimeStr} • {formattedDate}
+                </Text>
+                <Text style={styles.stationLabel}>{departureStation}</Text>
+              </View>
 
-                    {/* Arrival Info */}
-                    <View style={styles.tripPoint}>
-                        <View style={[styles.dot, { backgroundColor: colors.red }]} />
-                        <View>
-                            <Text style={styles.cityLabel}>Arrivée: {arrivalCity?.toUpperCase()}</Text>
-                            <Text style={styles.timeLabel}>{arrivalTimeStr} • {formattedDate}</Text>
-                            <Text style={styles.stationLabel}>{arrivalStation}</Text>
-                        </View>
-                    </View>
+              <View style={styles.routeStop}>
+                <Text style={styles.cityLabel}>Arrivée: {arrivalCity?.toUpperCase()}</Text>
+                <Text style={styles.timeLabel}>
+                  {arrivalTimeStr} • {formattedDate}
+                </Text>
+                <Text style={styles.stationLabel}>{arrivalStation}</Text>
+              </View>
+            </View>
+          </View>
 
-                    <Divider style={styles.divider} />
+          <Divider style={styles.divider} />
 
-                    {/* Pricing Breakdown */}
-                    <View style={styles.row}>
-                        <Text style={styles.label}>Frais de plateforme</Text>
-                        <Text style={styles.value}>0 {currency}</Text>
-                    </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Frais de plateforme</Text>
+            <Text style={styles.value}>0 {currency}</Text>
+          </View>
 
-                    <View style={[styles.row, { marginTop: 10 }]}>
-                        <View>
-                            <Text style={styles.totalLabel}>Total du voyage</Text>
-                            <Text style={styles.passengerSub}>Pour {passengerCount} voyageur(s)</Text>
-                        </View>
-                        <Text style={styles.totalValue}>{amount} {currency}</Text>
-                    </View>
-                </PaddedView>
-            )}
-        </View>
-    );
+          <View style={[styles.row, { marginTop: 10 }]}>
+            <View>
+              <Text style={styles.totalLabel}>Total du voyage</Text>
+              <Text style={styles.passengerSub}>Pour {passengerCount} voyageur(s)</Text>
+            </View>
+            <Text style={styles.totalValue}>
+              {amount} {currency}
+            </Text>
+          </View>
+        </PaddedView>
+      )}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1E293B',
-    },
-    content: {
-        paddingTop: 0,
-        paddingBottom: 20,
-    },
-    tripPoint: {
-        flexDirection: 'row',
-        gap: 12,
-        alignItems: 'flex-start',
-    },
-    dot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: colors.blue,
-        marginTop: 6,
-    },
-    verticalLine: {
-        width: 2,
-        height: 20,
-        backgroundColor: '#E2E8F0',
-        marginLeft: 4,
-        marginVertical: 2,
-    },
-    cityLabel: { fontSize: 14, fontWeight: '700', color: '#1E293B' },
-    timeLabel: { fontSize: 13, color: '#475569', marginVertical: 2 },
-    stationLabel: { fontSize: 12, color: '#94A3B8' },
-    divider: { marginVertical: 16 },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    label: { fontSize: 14, color: '#64748B' },
-    value: { fontSize: 14, color: '#1E293B', fontWeight: '500' },
-    totalLabel: { fontSize: 16, fontWeight: '800', color: '#1E293B' },
-    passengerSub: { fontSize: 12, color: '#94A3B8' },
-    totalValue: { fontSize: 20, fontWeight: '900', color: colors.blue },
+  container: {
+    backgroundColor: "#FFFFFF",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+  },
+  title: {
+    fontSize: 20,
+    color: "#000000",
+    fontFamily: "TTNormsPro-Bold",
+  },
+  content: {
+    paddingTop: 0,
+    paddingBottom: 20,
+  },
+  routeRow: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "stretch",
+  },
+  routeRail: {
+    width: 10,
+    alignItems: "center",
+    paddingTop: 6,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: DOT_GREY,
+  },
+  segmentLine: {
+    width: 2,
+    flexGrow: 1,
+    minHeight: 28,
+    marginVertical: 4,
+    backgroundColor: LINK_GREY,
+    borderRadius: 1,
+  },
+  routeBody: {
+    flex: 1,
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  routeStop: {
+    flexShrink: 0,
+  },
+  cityLabel: {
+    fontSize: 14,
+    color: "#000000",
+    fontFamily: "TTNormsPro-Bold",
+  },
+  timeLabel: {
+    fontSize: 13,
+    color: "#606060",
+    marginVertical: 2,
+    fontFamily: "TTNormsPro-Regular",
+  },
+  stationLabel: {
+    fontSize: 12,
+    color: "#606060",
+    fontFamily: "TTNormsPro-Regular",
+  },
+  divider: { marginVertical: 16, backgroundColor: "#F1F1F1" },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  label: { fontSize: 14, color: "#606060", fontFamily: "TTNormsPro-Regular" },
+  value: { fontSize: 14, color: "#000000", fontFamily: "TTNormsPro-Regular" },
+  totalLabel: {
+    fontSize: 16,
+    color: "#000000",
+    fontFamily: "TTNormsPro-Bold",
+  },
+  passengerSub: { fontSize: 12, color: "#606060", fontFamily: "TTNormsPro-Regular" },
+  totalValue: {
+    fontSize: 20,
+    color: "#02838A",
+    fontFamily: "TTNormsPro-Bold",
+  },
 });

@@ -1,22 +1,21 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 import { useColorScheme, StyleSheet } from 'react-native';
 
 import { Text, View } from '../../components/Themed';
 import Colors from '../../constants/Colors';
-import SearchHeader from '../../components/layout/SearchHeader';
 import { Header } from '../../components/layout/Header';
 
 /**
  * You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
  */
 function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
+  name: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
   number?: number
 }) {
   return <View style={{ position: "relative" }}>
-    <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />
+    <Ionicons size={24} style={{ marginBottom: -3 }} {...props} />
     {props.number && <Text style={styles.cartCountIcon}>{props.number}</Text>}
   </View>
 
@@ -29,6 +28,16 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarInactiveTintColor: "#606060",
+        tabBarStyle: {
+          backgroundColor: "#FFFFFF",
+          borderTopColor: "#D7D8DB",
+        },
+        tabBarLabelStyle: {
+          fontFamily: 'TTNormsPro-Regular',
+          fontWeight: "600",
+          fontSize: 12,
+        },
         headerStyle: {
         }
       }}>
@@ -37,7 +46,7 @@ export default function TabLayout() {
         options={{
           title: 'Recherche',
           headerShown: false,
-          tabBarIcon: ({ color }) => <TabBarIcon name="search" color={color} />,
+          tabBarIcon: ({ color }) => <TabBarIcon name="search-outline" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -47,7 +56,7 @@ export default function TabLayout() {
           headerShown: true,
           header: () => <Header  title="Mes Voyages"/>,
           tabBarIcon: ({ color }) => {
-            return <TabBarIcon name="ticket"
+            return <TabBarIcon name="ticket-outline"
               color={color}
             />
           },
@@ -59,7 +68,7 @@ export default function TabLayout() {
           title: 'Profil',
           headerShown: true,
           header: () => <Header  title="Profil"/>,
-          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
+          tabBarIcon: ({ color }) => <TabBarIcon name="person-outline" color={color} />,
         }}
       />
     </Tabs>

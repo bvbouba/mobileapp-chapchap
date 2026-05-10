@@ -1,10 +1,9 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { useRouter, useGlobalSearchParams } from 'expo-router';
-import { IconButton } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, colors } from '../Themed';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const TripResultHeader = () => {
   const router = useRouter();
@@ -21,8 +20,9 @@ const TripResultHeader = () => {
     if (!dateStr) return "";
     
     try {
-      // Parse the YYYY-MM-DD string
-      const dateObj = new Date(dateStr);
+      const [y, m, d] = dateStr.split("-").map(Number);
+      if (!y || !m || !d) return dateStr;
+      const dateObj = new Date(y, m - 1, d);
       
       return new Intl.DateTimeFormat('fr-FR', {
         weekday: 'short', // "mer."
@@ -39,12 +39,9 @@ const TripResultHeader = () => {
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <View style={styles.container}>
-        <IconButton
-          icon="arrow-left"
-          onPress={() => router.back()}
-          iconColor={colors.blue}
-          size={24}
-        />
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
+          <Ionicons name="arrow-back" size={20} color="#000000" />
+        </TouchableOpacity>
         
         <View style={styles.infoContainer}>
           <View style={styles.routeRow}>
@@ -63,7 +60,7 @@ const TripResultHeader = () => {
           </Text>
         </View>
 
-        <View style={{ width: 48 }} />
+        <View style={{ width: 40 }} />
       </View>
     </View>
   );
@@ -71,10 +68,9 @@ const TripResultHeader = () => {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    // Elevation for Android shadow, Shadow for iOS
+    borderBottomColor: '#D7D8DB',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -82,11 +78,21 @@ const styles = StyleSheet.create({
     shadowRadius: 1,
   },
   container: {
-    height: 60,
+    height: 66,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 8,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    // backgroundColor: "#F1F1F1",
+    borderWidth: 0,
+    borderColor: "#D7D8DB",
   },
   infoContainer: {
     flex: 1,
@@ -99,14 +105,15 @@ const styles = StyleSheet.create({
   },
   cityText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    color: '#000000',
+    fontFamily: 'TTNormsPro-Bold',
     textTransform: 'capitalize',
   },
   dateText: {
     fontSize: 13,
-    color: '#666',
+    color: '#606060',
     marginTop: 2,
+    fontFamily: 'TTNormsPro-Regular',
     textTransform: 'capitalize', 
   },
 });

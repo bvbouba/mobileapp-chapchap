@@ -1,7 +1,6 @@
 import React from 'react';
-import { Modal, View, TouchableOpacity, StyleSheet, Platform, SafeAreaView } from 'react-native';
+import { Modal, View, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Text } from '../Themed';
 
 interface DateProps {
@@ -12,47 +11,156 @@ interface DateProps {
 }
 
 export const DateSelectionModal = ({ visible, date, onClose, onSelect }: DateProps) => {
+  const today = new Date();
+  const [currentMonth, setCurrentMonth] = React.useState(
+    new Date(date.getFullYear(), date.getMonth(), 1)
+  );
+
+  React.useEffect(() => {
+    if (!visible) return;
+    setCurrentMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+  }, [visible, date]);
+
+  const monthLabel = currentMonth.toLocaleDateString("fr-FR", {
+    month: "long",
+    year: "numeric",
+  });
+  const monthLabelFormatted = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const selectedDateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  const daysInMonth = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth() + 1,
+    0
+  ).getDate();
+  const firstDayIndex = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth(),
+    1
+  ).getDay();
+  const leadingEmpty = (firstDayIndex + 6) % 7;
+  const totalCells = Math.ceil((leadingEmpty + daysInMonth) / 7) * 7;
+
+  const goToPreviousMonth = () => {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+    );
+  };
+
+  const goToNextMonth = () => {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
+    );
+  };
+
   return (
     <Modal 
       visible={visible} 
       animationType="slide" 
       presentationStyle="fullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
-      {/* SafeAreaView ensures content stays below the notch/status bar */}
-      <SafeAreaView style={styles.safeArea}>
+      <View style={styles.safeArea}>
         <View style={styles.modalContainer}>
           
           {/* Header */}
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={onClose} style={styles.backButton}>
-              <Ionicons name="chevron-back" size={28} color="#333" />
+              <Ionicons name="close" size={20} color="#000000" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Choisir une date</Text>
-            <View style={{ width: 40 }} /> 
+            <View style={{ width: 36 }} /> 
           </View>
 
           {/* Picker Wrapper - Centering the calendar */}
           <View style={styles.pickerWrapper}>
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display="inline" 
-              minimumDate={new Date()}
-              onChange={(event: DateTimePickerEvent, d?: Date) => d && onSelect(d)}
-              accentColor="#E91E63"
-              style={styles.datePicker} // Apply explicit style
-            />
+            <View style={styles.datePicker}>
+              <View style={styles.calendarHeader}>
+                <TouchableOpacity onPress={goToPreviousMonth} style={styles.monthNavButton}>
+                  <Ionicons name="chevron-back" size={20} color="#EB1700" />
+                </TouchableOpacity>
+                <Text style={styles.monthLabel}>{monthLabelFormatted}</Text>
+                <TouchableOpacity onPress={goToNextMonth} style={styles.monthNavButton}>
+                  <Ionicons name="chevron-forward" size={20} color="#EB1700" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.weekdayRow}>
+                {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((d) => (
+                  <Text key={d} style={styles.weekdayText}>{d}</Text>
+                ))}
+              </View>
+
+              <View style={styles.grid}>
+                {Array.from({ length: totalCells }).map((_, idx) => {
+                  const dayNum = idx - leadingEmpty + 1;
+                  const isCurrentMonthDay = dayNum > 0 && dayNum <= daysInMonth;
+                  if (!isCurrentMonthDay) {
+                    return (
+                      <View key={`empty-${idx}`} style={styles.dayCellShell}>
+                        <View style={styles.dayCellInnerEmpty} />
+                      </View>
+                    );
+                  }
+
+                  const dayDate = new Date(
+                    currentMonth.getFullYear(),
+                    currentMonth.getMonth(),
+                    dayNum
+                  );
+                  const isPast = dayDate < startOfToday;
+                  const isSelected = isSameDay(dayDate, selectedDateStart);
+                  const isToday = isSameDay(dayDate, startOfToday);
+
+                  return (
+                    <View
+                      key={`${currentMonth.getMonth()}-${dayNum}`}
+                      style={styles.dayCellShell}
+                    >
+                      <TouchableOpacity
+                        style={[
+                          styles.dayCellInner,
+                          isSelected && styles.dayCellSelected,
+                          isToday && !isSelected && styles.dayCellToday,
+                        ]}
+                        disabled={isPast}
+                        onPress={() => onSelect(dayDate)}
+                      >
+                        <Text
+                          style={[
+                            styles.dayText,
+                            isPast && styles.dayTextDisabled,
+                            isSelected && styles.dayTextSelected,
+                            isToday && !isSelected && styles.dayTextToday,
+                          ]}
+                        >
+                          {dayNum}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
           </View>
 
           {/* Footer */}
           <View style={styles.modalFooter}>
             <TouchableOpacity style={styles.confirmButton} onPress={onClose}>
-              <Text style={styles.confirmButtonText}>SÉLECTIONNER CETTE DATE</Text>
+              <Text style={styles.confirmButtonText}>Valider la date</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 };
@@ -60,54 +168,140 @@ export const DateSelectionModal = ({ visible, date, onClose, onSelect }: DatePro
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
   modalContainer: { 
     flex: 1, 
-    backgroundColor: '#fff' 
+    backgroundColor: '#FFFFFF' 
   },
   modalHeader: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingHorizontal: 18,
+    paddingTop: (StatusBar.currentHeight ?? 0) + 12,
+    paddingVertical: 12,
     borderBottomWidth: 1, 
-    borderBottomColor: '#eee' 
+    borderBottomColor: '#D7D8DB' 
   },
   backButton: { 
-    padding: 5 
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    // backgroundColor: "#F1F1F1",
+    borderWidth: 0,
+    borderColor: "#D7D8DB",
   },
   modalTitle: { 
     fontSize: 18, 
-    fontWeight: 'bold',
-    color: '#333'
+    color: '#000000',
+    fontFamily: 'TTNormsPro-Bold',
   },
   pickerWrapper: { 
     flex: 1, 
-    alignItems: 'center',    // Centers the picker horizontally
-    paddingHorizontal: 10,   // Small padding to prevent touching edges
+    paddingHorizontal: 10,
+    paddingTop: 8,
   },
   datePicker: {
-    width: '100%',           // Ensures it uses available width
-    height: 400,             // Gives the calendar enough room to breathe
+    width: '100%',
+    borderWidth: 0,
+    borderColor: "#D7D8DB",
+    borderRadius: 16,
+    paddingBottom: 14,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+  },
+  calendarHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  monthNavButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F1F1F1",
+  },
+  monthLabel: {
+    color: "#000000",
+    fontSize: 18,
+    fontFamily: "TTNormsPro-Bold",
+  },
+  weekdayRow: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+  weekdayText: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 12,
+    color: "#606060",
+    fontFamily: "TTNormsPro-Regular",
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  dayCellShell: {
+    width: "14.2857%",
+    aspectRatio: 1,
+    padding: 3,
+  },
+  dayCellInner: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+  },
+  dayCellInnerEmpty: {
+    width: "100%",
+    height: "100%",
+  },
+  dayCellSelected: {
+    backgroundColor: "#EB1700",
+  },
+  dayCellToday: {
+    borderWidth: 1,
+    borderColor: "#02838A",
+  },
+  dayText: {
+    color: "#000000",
+    fontSize: 15,
+    fontFamily: "TTNormsPro-Regular",
+  },
+  dayTextDisabled: {
+    color: "#D7D8DB",
+  },
+  dayTextSelected: {
+    color: "#FFFFFF",
+    fontFamily: "TTNormsPro-Bold",
+  },
+  dayTextToday: {
+    color: "#02838A",
   },
   modalFooter: { 
-    padding: 20, 
-    borderTopWidth: 1, 
-    borderTopColor: '#eee', 
-    paddingBottom: Platform.OS === 'ios' ? 20 : 20 
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 50,
+    borderTopWidth: 0, 
+    borderTopColor: '#D7D8DB', 
   },
   confirmButton: { 
-    backgroundColor: '#E91E63', 
+    backgroundColor: '#EB1700', 
     height: 55, 
-    borderRadius: 12, 
+    borderRadius: 999, 
     justifyContent: 'center', 
     alignItems: 'center' 
   },
   confirmButtonText: { 
-    color: '#fff', 
+    color: '#FFFFFF', 
     fontSize: 16, 
-    fontWeight: 'bold' 
+    fontFamily: 'TTNormsPro-Bold',
   },
 });

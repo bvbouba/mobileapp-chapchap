@@ -32,6 +32,8 @@ export const unstable_settings = {
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    "TTNormsPro-Regular": require("../assets/fonts/tt-norms-pro-regular.ttf"),
+    "TTNormsPro-Bold": require("../assets/fonts/tt-norms-pro-bold.ttf"),
     ...FontAwesome.font,
   });
 
@@ -83,14 +85,17 @@ function RootLayoutNav() {
                   value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
                 >
                   <Stack >
-                    <Stack.Screen name="(tabs)" options={{
-
-                      header: () => <></>
-                    }} />
-                    <Stack.Screen name="cart" 
-                     options={{
-                      header: () => <></>
-                    }}
+                    <Stack.Screen
+                      name="(tabs)"
+                      options={{
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="cart"
+                      options={{
+                        headerShown: false,
+                      }}
                     />
                     <Stack.Screen name="products/results" options={{
                       headerStyle: {
@@ -98,9 +103,14 @@ function RootLayoutNav() {
                       }, header: () => <TripResultHeader />
                     }} />
                     <Stack.Screen name="products/details/[id]" options={baseHeaderProps} />
-                    <Stack.Screen name="checkout" options={{ ...baseHeaderProps,
-                      header: () => <></>,
-                      headerTitle: "Checkout", }} />
+                    <Stack.Screen
+                      name="checkout"
+                      options={{
+                        ...baseHeaderProps,
+                        headerShown: false,
+                        headerTitle: "Checkout",
+                      }}
+                    />
                     <Stack.Screen name="personalDetails" options={baseHeaderProps} />
                     <Stack.Screen name="shippingAddress" options={baseHeaderProps} />
                     <Stack.Screen name="billingAddress" options={baseHeaderProps} />

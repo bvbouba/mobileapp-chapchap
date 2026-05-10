@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Modal, StyleSheet, TouchableOpacity, View, ActivityIndicator, ScrollView } from 'react-native';
+import { Modal, StyleSheet, TouchableOpacity, View, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { PaddedView, Text, colors } from '../Themed';
+import { PaddedView, Text } from "../Themed";
 import { paymentMethodToComponent } from './payments/supportedPaymentApps';
 import { usePayments } from './payments/usePayments';
+import { EllipsisLoader } from '../EllipsisLoader';
 
 export const PaymentModal = ({ visible, onClose, totalAmount }: { visible: boolean, onClose: () => void, totalAmount: string }) => {
     const { availablePaymentGateways, fetching } = usePayments();
@@ -25,14 +26,14 @@ export const PaymentModal = ({ visible, onClose, totalAmount }: { visible: boole
                     <View style={styles.header}>
                         {selectedGatewayId ? (
                             <TouchableOpacity onPress={() => setSelectedGatewayId(null)} style={styles.backButton}>
-                                <Ionicons name="arrow-back" size={24} color={colors.blue} />
+                                <Ionicons name="arrow-back" size={22} color="#02838A" />
                                 <Text style={styles.backText}>Retour</Text>
                             </TouchableOpacity>
                         ) : (
                             <Text style={styles.title}>Paiement</Text>
                         )}
-                        <TouchableOpacity onPress={handleClose}>
-                            <Ionicons name="close-circle" size={28} color="#CBD5E1" />
+                        <TouchableOpacity onPress={handleClose} hitSlop={12}>
+                            <Ionicons name="close-circle" size={28} color="#D7D8DB" />
                         </TouchableOpacity>
                     </View>
 
@@ -44,7 +45,9 @@ export const PaymentModal = ({ visible, onClose, totalAmount }: { visible: boole
                             </View>
 
                             {fetching ? (
-                                <ActivityIndicator size="large" color={colors.blue} style={{ marginTop: 40 }} />
+                                <View style={{ marginTop: 40, alignItems: "center" }}>
+                                    <EllipsisLoader color="#EB1700" />
+                                </View>
                             ) : selectedGatewayId ? (
                                 /* STEP 2: Show the selected Gateway Component (The Pay Button) */
                                 <View style={styles.selectedContainer}>
@@ -68,16 +71,16 @@ export const PaymentModal = ({ visible, onClose, totalAmount }: { visible: boole
                                                 onPress={() => setSelectedGatewayId(gateway.id)}
                                             >
                                                 <View style={styles.methodIconBox}>
-                                                    <Ionicons 
-                                                        name={gateway.id.includes('dummy') ? "flask-outline" : "card-outline"} 
-                                                        size={24} 
-                                                        color={colors.blue} 
+                                                    <Ionicons
+                                                        name={gateway.id.includes('dummy') ? "flask-outline" : "card-outline"}
+                                                        size={22}
+                                                        color="#02838A"
                                                     />
                                                 </View>
                                                 <Text style={styles.methodName}>
                                                     {gateway.id.includes('dummy') ? 'Passerelle de Test' : 'Carte Bancaire'}
                                                 </Text>
-                                                <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
+                                                <Ionicons name="chevron-forward" size={20} color="#D7D8DB" />
                                             </TouchableOpacity>
                                         ))
                                     }
@@ -92,28 +95,77 @@ export const PaymentModal = ({ visible, onClose, totalAmount }: { visible: boole
 };
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContainer: { backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '55%' },
-    indicator: { width: 40, height: 5, backgroundColor: '#E2E8F0', borderRadius: 10, alignSelf: 'center', marginTop: 12 },
-    header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 20, alignItems: 'center' },
-    backButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    backText: { color: colors.blue, fontWeight: '700', fontSize: 16 },
-    title: { fontSize: 20, fontWeight: '800', color: '#1E293B' },
-    amountBox: { backgroundColor: '#F8FAFC', padding: 15, borderRadius: 20, alignItems: 'center', marginBottom: 20 },
-    amountLabel: { fontSize: 11, color: '#64748B', fontWeight: '600' },
-    amountValue: { fontSize: 28, fontWeight: '900', color: colors.blue },
-    subTitle: { fontSize: 11, fontWeight: '700', color: '#94A3B8', marginBottom: 12 },
-    gatewaysList: { gap: 10 },
-    methodItem: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        padding: 14, 
-        backgroundColor: '#F1F5F9', 
-        borderRadius: 16,
-        gap: 12 
+    overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+    modalContainer: {
+        backgroundColor: "#FFFFFF",
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        height: "55%",
     },
-    methodIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center' },
-    methodName: { flex: 1, fontSize: 15, fontWeight: '700', color: '#1E293B' },
+    indicator: {
+        width: 40,
+        height: 5,
+        backgroundColor: "#D7D8DB",
+        borderRadius: 10,
+        alignSelf: "center",
+        marginTop: 12,
+    },
+    header: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        alignItems: "center",
+    },
+    backButton: { flexDirection: "row", alignItems: "center", gap: 6 },
+    backText: { color: "#02838A", fontSize: 16, fontFamily: "TTNormsPro-Bold" },
+    title: { fontSize: 18, color: "#000000", fontFamily: "TTNormsPro-Bold" },
+    amountBox: {
+        backgroundColor: "#F1F1F1",
+        padding: 16,
+        borderRadius: 16,
+        alignItems: "center",
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: "#D7D8DB",
+    },
+    amountLabel: { fontSize: 12, color: "#606060", fontFamily: "TTNormsPro-Bold" },
+    amountValue: { fontSize: 26, color: "#02838A", fontFamily: "TTNormsPro-Bold", marginTop: 4 },
+    subTitle: {
+        fontSize: 11,
+        color: "#606060",
+        marginBottom: 12,
+        fontFamily: "TTNormsPro-Bold",
+        letterSpacing: 0.5,
+    },
+    gatewaysList: { gap: 10 },
+    methodItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 14,
+        backgroundColor: "#F1F1F1",
+        borderRadius: 16,
+        gap: 12,
+        borderWidth: 1,
+        borderColor: "#D7D8DB",
+    },
+    methodIconBox: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: "#FFFFFF",
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#D7D8DB",
+    },
+    methodName: { flex: 1, fontSize: 15, color: "#000000", fontFamily: "TTNormsPro-Bold" },
     selectedContainer: { marginTop: 10 },
-    confirmTitle: { textAlign: 'center', fontSize: 14, color: '#64748B', marginBottom: 20 }
+    confirmTitle: {
+        textAlign: "center",
+        fontSize: 14,
+        color: "#606060",
+        marginBottom: 20,
+        fontFamily: "TTNormsPro-Regular",
+    },
 });

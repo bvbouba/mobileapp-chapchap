@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { StyleSheet, View, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { Text, colors } from "../Themed";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import PhoneInput from "react-native-phone-number-input";
@@ -7,6 +7,7 @@ import { isValidPhoneNumber } from "libphonenumber-js";
 import { useSendCodeMutation, useUserRegisterMutation, useVerifyCodeMutation } from "../../saleor/api.generated";
 import { useAuth } from "../../lib/providers/authProvider";
 import { getConfig } from "../../config";
+import { EllipsisLoader } from "../EllipsisLoader";
 
 const appName = getConfig().appName;
 
@@ -131,7 +132,7 @@ export const SignupForm: React.FC<Props> = ({ onClose, onSwitchToLogin }) => {
                                 placeholder="Numéro de téléphone"
                             />
                             <Pressable style={[styles.submitBtn, !phone && styles.disabledBtn]} onPress={handleSendOTP} disabled={loading}>
-                                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Envoyer le code</Text>}
+                                {loading ? <EllipsisLoader color="#FFFFFF" dotSize={6} /> : <Text style={styles.submitBtnText}>Envoyer le code</Text>}
                             </Pressable>
                         </>
                     )}
@@ -148,7 +149,7 @@ export const SignupForm: React.FC<Props> = ({ onClose, onSwitchToLogin }) => {
                                 autoFocus
                             />
                             <Pressable style={styles.submitBtn} onPress={handleVerifyOTP} disabled={loading}>
-                                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Vérifier le code</Text>}
+                                {loading ? <EllipsisLoader color="#FFFFFF" dotSize={6} /> : <Text style={styles.submitBtnText}>Vérifier le code</Text>}
                             </Pressable>
                             <Pressable onPress={() => setStep(1)}><Text style={styles.retryText}>Changer de numéro</Text></Pressable>
                         </>
@@ -163,7 +164,7 @@ export const SignupForm: React.FC<Props> = ({ onClose, onSwitchToLogin }) => {
                             <TextInput style={styles.input} placeholder="Mot de passe" secureTextEntry value={password} onChangeText={setPassword} />
                             <TextInput style={styles.input} placeholder="Confirmer mot de passe" secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
                             <Pressable style={styles.submitBtn} onPress={handleRegister} disabled={loading}>
-                                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Finaliser l'inscription</Text>}
+                                {loading ? <EllipsisLoader color="#FFFFFF" dotSize={6} /> : <Text style={styles.submitBtnText}>Finaliser l'inscription</Text>}
                             </Pressable>
                         </>
                     )}

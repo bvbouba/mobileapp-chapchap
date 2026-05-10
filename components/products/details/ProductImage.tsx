@@ -7,10 +7,10 @@ import type {
 import {
     StyleSheet,
     View,
-    ActivityIndicator,
     Image,
     Text,
 } from "react-native";
+import { EllipsisLoader } from "../../EllipsisLoader";
 
 interface Props {
     style?: StyleProp<ViewStyle>
@@ -34,7 +34,7 @@ const ProductImage: React.FC<Props> = ({
 
     return (
         <View style={[styles.container, style]}>
-            <ActivityIndicator size="small" />
+            <EllipsisLoader color="#606060" dotSize={5} />
             <Image key={index} style={styles.image} source={source} alt={alt} />
         </View>
     );

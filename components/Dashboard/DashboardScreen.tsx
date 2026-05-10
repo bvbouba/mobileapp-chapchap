@@ -1,15 +1,8 @@
 import { StyleSheet, View } from "react-native";
-import { useRouter } from "expo-router";
 import HeroHeader from "./HeroHeader";
 import HeroSearch from "./HeroSearch";
 
 const DashboardScreen = () => {
-    const router = useRouter();
-
-    const handleSearch = () => {
-        router.push("/products/results");
-    };
-
     return (
         <View style={styles.container}>
            <HeroHeader />
