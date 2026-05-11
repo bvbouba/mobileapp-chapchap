@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { Alert, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { View, Text, Divider, PaddedView } from "../Themed";
 import { getTripInformation } from "../../utils/attribute";
+import { EllipsisLoader } from "../EllipsisLoader";
 
 const LINK_GREY = "#D7D8DB";
 const DOT_GREY = "#B0B0B0";
@@ -16,12 +17,20 @@ interface SummaryProps {
   voucherCode?: string | null;
   giftCards?: any[];
   shippingPrice?: any;
+  /** When false, service fee + total rows stay hidden until checkout pricing includes the platform fee. */
+  pricingReady?: boolean;
 }
 
-export const Summary: React.FC<SummaryProps> = ({ lines, totalPrice }) => {
+export const Summary: React.FC<SummaryProps> = ({
+  lines,
+  totalPrice,
+  pricingReady = true,
+}) => {
   const [isOpen, setIsOpen] = useState(true);
 
-  const line = lines?.[0];
+  const feeLine = lines?.find((line) => line?.variant?.product?.slug === "platform-fee");
+  const tripLines = lines?.filter((line) => line?.variant?.product?.slug !== "platform-fee");
+  const line = tripLines?.[0];
   const {
     departureCity,
     departureTimeStr,
@@ -32,10 +41,11 @@ export const Summary: React.FC<SummaryProps> = ({ lines, totalPrice }) => {
     arrivalStation,
   } = getTripInformation({ attributes: line?.variant?.attributes || [] });
 
-  const passengerCount = lines.reduce((acc, curr) => acc + (curr.quantity || 0), 0);
+  const passengerCount = tripLines.reduce((acc, curr) => acc + (curr.quantity || 0), 0);
   const amount = totalPrice?.gross?.amount ?? 0;
   const currency = totalPrice?.gross?.currency ?? "XOF";
-
+  const platformFeeAmount = feeLine?.totalPrice?.gross?.amount ?? 0;
+  const platformFeeCurrency = feeLine?.totalPrice?.gross?.currency ?? currency;
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -82,8 +92,24 @@ export const Summary: React.FC<SummaryProps> = ({ lines, totalPrice }) => {
           <Divider style={styles.divider} />
 
           <View style={styles.row}>
-            <Text style={styles.label}>Frais de plateforme</Text>
-            <Text style={styles.value}>0 {currency}</Text>
+            <View style={styles.serviceFeeLabelWrap}>
+              <Text style={styles.label}>Service Fee</Text>
+              <TouchableOpacity
+                style={styles.infoIconBtn}
+                activeOpacity={0.85}
+                onPress={() =>
+                  Alert.alert(
+                    "Service Fee",
+                    "This fee helps us keep the Sira platform secure and provides you with 24/7 customer support for your journey."
+                  )
+                }
+              >
+                <Ionicons name="information-circle-outline" size={16} color="#606060" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.value}>
+              {platformFeeAmount} {platformFeeCurrency}
+            </Text>
           </View>
 
           <View style={[styles.row, { marginTop: 10 }]}>
@@ -169,10 +195,30 @@ const styles = StyleSheet.create({
     fontFamily: "TTNormsPro-Regular",
   },
   divider: { marginVertical: 16, backgroundColor: "#F1F1F1" },
+  pricingPending: {
+    minHeight: 72,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 16,
+    gap: 10,
+  },
+  pricingPendingText: {
+    fontSize: 13,
+    color: "#606060",
+    fontFamily: "TTNormsPro-Regular",
+  },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  serviceFeeLabelWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  infoIconBtn: {
+    padding: 2,
   },
   label: { fontSize: 14, color: "#606060", fontFamily: "TTNormsPro-Regular" },
   value: { fontSize: 14, color: "#000000", fontFamily: "TTNormsPro-Regular" },

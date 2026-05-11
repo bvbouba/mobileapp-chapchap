@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Divider, PaddedView, Text, View } from "../Themed";
 import { useCartContext } from "../../context/useCartContext";
+import { getConfig } from "../../config";
 import { getTripInformation } from '../../utils/attribute';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+import { ensurePlatformFeeLineInCheckout } from "../../utils/ensurePlatformFeeInCheckout";
+import {
+  useCheckoutLinesAddMutation,
+  useGetProductBySlugLazyQuery,
+} from "../../saleor/api.generated";
 import { EllipsisLoader } from '../EllipsisLoader';
 import { TripDetailsContent } from '../products/TripDetails/TripDetailsContent';
 import { PassengerModal } from './PassengerModal';
@@ -23,11 +29,15 @@ const TripArrow = ({ duration }: { duration: string }) => (
 );
 
 const CartScreen = () => {
-  const { cart, updateItemQuantity, loading } = useCartContext();
+  const { cart, updateItemQuantity, loading, refreshCart } = useCartContext();
   const navigation = useRouter();
   const insets = useSafeAreaInsets();
   const [showPassengerModal, setShowPassengerModal] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [checkoutNavigating, setCheckoutNavigating] = useState(false);
+
+  const [fetchPlatformFeeProduct] = useGetProductBySlugLazyQuery();
+  const [checkoutLinesAdd] = useCheckoutLinesAddMutation();
 
   const line = cart?.lines?.[0];
   const variant = line?.variant;
@@ -78,6 +88,39 @@ const CartScreen = () => {
     return found?.values;
   };
   const companyLogoUrl = resolveMediaUrl(variant?.product?.thumbnail?.url);
+
+  const handleGoToCheckout = async () => {
+    if (!cart?.id || loading || checkoutNavigating) return;
+    setCheckoutNavigating(true);
+    try {
+      const feeResult = await ensurePlatformFeeLineInCheckout({
+        checkoutId: cart.id,
+        lines: cart.lines,
+        channel: getConfig().channel ?? "",
+        fetchProductBySlug: (args) => fetchPlatformFeeProduct(args),
+        checkoutLinesAdd: (args) => checkoutLinesAdd(args),
+        refreshCart,
+      });
+
+      if (!feeResult.ok && feeResult.reason === "mutation_error") {
+        Alert.alert(
+          "Erreur",
+          feeResult.message || "Impossible d'ajouter les frais de plateforme au panier."
+        );
+        return;
+      }
+
+      navigation.push("/checkout");
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Erreur", "Impossible de continuer vers la validation.");
+    } finally {
+      setCheckoutNavigating(false);
+    }
+  };
+
+  const checkoutBusy = loading || checkoutNavigating;
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
@@ -183,12 +226,12 @@ const CartScreen = () => {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-        <TouchableOpacity 
-          style={[styles.checkoutBtn, loading && { opacity: 0.7 }]} 
-          onPress={() => navigation.push('/checkout')}
-          disabled={loading}
+        <TouchableOpacity
+          style={[styles.checkoutBtn, checkoutBusy && { opacity: 0.7 }]}
+          onPress={handleGoToCheckout}
+          disabled={checkoutBusy}
         >
-          {loading ? (
+          {checkoutBusy ? (
             <EllipsisLoader color="#FFFFFF" dotSize={7} />
           ) : (
             <Text style={styles.checkoutBtnText}>Réserver {totalAmount} {currency}</Text>

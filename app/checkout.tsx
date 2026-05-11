@@ -19,13 +19,19 @@ import { ContactSection } from "../components/checkout/ContactSection";
 import { PassengerSection } from "../components/checkout/PassengerSection";
 import { EllipsisLoader } from "../components/EllipsisLoader";
 import { useCheckout } from "../context/useCheckout";
+import { useCartContext } from "../context/useCartContext";
 import { getConfig } from "../config";
 import { useGuestUserForm } from "../checkout/hooks/useGuestUserForm";
+import { useCheckoutDeleteLinesMutation } from "../saleor/api.generated";
+import { PLATFORM_FEE_PRODUCT_SLUG } from "../utils/ensurePlatformFeeInCheckout";
 
 const Checkout = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { checkout, fetching: fetchingCheckout, refetch } = useCheckout();
+  const { refreshCart } = useCartContext();
+  const [deleteCheckoutLines] = useCheckoutDeleteLinesMutation();
+  const [removingFeeForBack, setRemovingFeeForBack] = useState(false);
 
   const {
     phone,
@@ -92,12 +98,49 @@ const Checkout = () => {
     handleSubmit();
   };
 
+  const handleBackFromCheckout = async () => {
+    if (removingFeeForBack) return;
+
+    setRemovingFeeForBack(true);
+    try {
+      if (checkout?.id) {
+        const feeLineIds =
+          checkout.lines
+            ?.filter((line) => line?.variant?.product?.slug === PLATFORM_FEE_PRODUCT_SLUG)
+            .map((line) => line.id) ?? [];
+
+        if (feeLineIds.length > 0) {
+          const res = await deleteCheckoutLines({
+            variables: { checkoutId: checkout.id, lineIds: feeLineIds },
+          });
+          const errs = res.data?.checkoutLinesDelete?.errors ?? [];
+          if (errs.length > 0) {
+            console.error("checkoutLinesDelete:", errs);
+          }
+          await refreshCart();
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      router.back();
+    }
+  };
+
   return (
     <StripeProvider publishableKey={getConfig().stripePK}>
       <View style={styles.screen}>
         <RNView style={[styles.header, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.headerIconBtn}>
-            <Ionicons name="arrow-back" size={22} color="#000000" />
+          <TouchableOpacity
+            onPress={handleBackFromCheckout}
+            style={styles.headerIconBtn}
+            disabled={removingFeeForBack}
+          >
+            {removingFeeForBack ? (
+              <EllipsisLoader color="#000000" dotSize={5} />
+            ) : (
+              <Ionicons name="arrow-back" size={22} color="#000000" />
+            )}
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Validation commande</Text>
           <RNView style={styles.headerSpacer} />

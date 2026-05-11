@@ -114,3 +114,13 @@ query searchProducts(
     }
   }
 }
+
+
+query getProductBySlug($slug: String!, $channel: String!) {
+  product(slug: $slug, channel: $channel) {
+    id
+    defaultVariant {
+      id
+    }
+  }
+}
