@@ -4,6 +4,7 @@ import { useRouter, useGlobalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, colors } from '../Themed';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { formatFrenchShortTripDate } from '../../utils/attribute';
 
 const TripResultHeader = () => {
   const router = useRouter();
@@ -15,26 +16,18 @@ const TripResultHeader = () => {
     date: string 
   }>();
 
-  // Helper to format: "mer. 14 janv."
-  const formatFrenchDate = (dateStr: string | undefined) => {
+  const formatRouteDate = (dateStr: string | undefined) => {
     if (!dateStr) return "";
-    
     try {
       const [y, m, d] = dateStr.split("-").map(Number);
       if (!y || !m || !d) return dateStr;
-      const dateObj = new Date(y, m - 1, d);
-      
-      return new Intl.DateTimeFormat('fr-FR', {
-        weekday: 'short', // "mer."
-        day: 'numeric',   // "14"
-        month: 'short',   // "janv."
-      }).format(dateObj);
-    } catch (e) {
-      return dateStr; // Fallback to raw string if parsing fails
+      return formatFrenchShortTripDate(new Date(y, m - 1, d));
+    } catch {
+      return dateStr;
     }
   };
 
-  const displayDate = formatFrenchDate(date);
+  const displayDate = formatRouteDate(date);
 
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top }]}>
@@ -114,7 +107,6 @@ const styles = StyleSheet.create({
     color: '#606060',
     marginTop: 2,
     fontFamily: 'TTNormsPro-Regular',
-    textTransform: 'capitalize', 
   },
 });
 

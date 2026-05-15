@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, View, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
+import { Modal, View, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../Themed';
 
@@ -69,7 +70,8 @@ export const DateSelectionModal = ({ visible, date, onClose, onSelect }: DatePro
       navigationBarTranslucent
       onRequestClose={onClose}
     >
-      <View style={styles.safeArea}>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'right', 'left', 'bottom']}>
         <View style={styles.modalContainer}>
           
           {/* Header */}
@@ -160,7 +162,8 @@ export const DateSelectionModal = ({ visible, date, onClose, onSelect }: DatePro
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+        </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 };
@@ -179,7 +182,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'space-between', 
     paddingHorizontal: 18,
-    paddingTop: (StatusBar.currentHeight ?? 0) + 12,
     paddingVertical: 12,
     borderBottomWidth: 1, 
     borderBottomColor: '#D7D8DB' 
@@ -288,7 +290,7 @@ const styles = StyleSheet.create({
   modalFooter: { 
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 50,
+    paddingBottom: 8,
     borderTopWidth: 0, 
     borderTopColor: '#D7D8DB', 
   },

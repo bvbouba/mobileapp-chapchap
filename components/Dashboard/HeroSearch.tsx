@@ -7,6 +7,7 @@ import { mapEdgesToItems } from '../../utils/maps';
 import { DateSelectionModal } from './DateSelectionModal';
 import { CitySelectionModal } from './CitySelectionModal';
 import { router } from 'expo-router';
+import { formatFrenchHeroTripDate } from '../../utils/attribute';
 
 const HeroSearch = () => {
   const [selectedOrigin, setSelectedOrigin] = useState<AssignedAttributeValueFragment>();
@@ -45,16 +46,6 @@ const HeroSearch = () => {
     const tempOrigin = selectedOrigin;
     setSelectedOrigin(selectedDestination);
     setSelectedDestination(tempOrigin);
-  };
-
-  const formatFrenchDate = (value: Date) => {
-    const weekday = value.toLocaleDateString("fr-FR", { weekday: "short" });
-    const dayMonth = value.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
-    const weekdayFormatted = weekday.charAt(0).toUpperCase() + weekday.slice(1);
-    const parts = dayMonth.split(" ");
-    if (parts.length < 2) return `${weekdayFormatted} ${dayMonth}`;
-    const capitalizedMonth = parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
-    return `${weekdayFormatted} ${parts[0]} ${capitalizedMonth}`;
   };
 
   const formatLocalDateKey = (value: Date) => {
@@ -117,7 +108,7 @@ const HeroSearch = () => {
         <TouchableOpacity style={styles.inputWrapper} onPress={() => setModalType('date')}>
           <Ionicons name="calendar-outline" size={20} color={hasSelectedDate ? "#EB1700" : "#606060"} />
           <Text style={hasSelectedDate ? styles.dateTextActive : styles.inputPlaceholder}>
-            {hasSelectedDate ? formatFrenchDate(travelDate) : "Date du voyage"}
+            {hasSelectedDate ? formatFrenchHeroTripDate(travelDate) : "Date du voyage"}
           </Text>
         </TouchableOpacity>
 

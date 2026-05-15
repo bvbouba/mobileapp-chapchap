@@ -56,8 +56,7 @@ const CartScreen = () => {
     arrivalTimeStr,
   } = getTripInformation({ attributes });
 
-  const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
-  const displayDate = capitalize(formattedDate);
+  const displayDate = formattedDate;
   const depCityDisplay = departureCity?.toUpperCase();
   const arrCityDisplay = arrivalCity?.toUpperCase();
 

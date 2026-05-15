@@ -6,6 +6,7 @@ import { useCheckout } from '../../../../context/useCheckout';
 import { colors } from '../../../Themed';
 import { useCheckoutComplete } from '../../../../checkout/hooks/useCheckoutComplete';
 import { dummyGatewayId } from './types';
+import { TransactionFlowStrategyEnum } from '../../../../checkout/graphql';
 
 export const DummyComponent = () => {
     const { checkout } = useCheckout();
@@ -25,12 +26,13 @@ export const DummyComponent = () => {
             const { data } = await transactionInitialize({
                 variables: {
                     checkoutId: checkout.id,
+                    action: TransactionFlowStrategyEnum.Authorization,
                     paymentGateway: {
                         id: dummyGatewayId, 
                         data: {
                             "event": {
                                 "includePspReference": true,
-                                "type": "CHARGE_SUCCESS"
+                                "type": "AUTHORIZATION_SUCCESS"
                             }
                         },
                     },

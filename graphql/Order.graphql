@@ -35,6 +35,7 @@ fragment OrderLineVariant on ProductVariant {
   product {
     id
     name
+    slug
     attributes {
       attribute {
         id
@@ -94,6 +95,10 @@ fragment Order on Order {
   status
   id
   number
+  metadata {
+    key
+    value
+  }
   shippingPrice {
     ...OrderShippingPrice
   }

@@ -1,15 +1,15 @@
-import { SafeAreaView,StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import OrdersList from '../../components/orders/OrdersList';
 
 
 export default function MyTrips() {
   return (
-    <SafeAreaView style={styles.container}>
-    <OrdersList />
-    </SafeAreaView>
+    <View style={styles.container}>
+      <OrdersList />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#F1F1F1' },
 })

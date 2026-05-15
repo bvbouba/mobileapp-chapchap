@@ -26,8 +26,11 @@ export const ProductElement = ({ variant }: Props) => {
 
     setIsActionLoading(true); 
     try {
-      await addItem(variant?.id);      
-      router.push("/cart");
+      const res = await addItem(variant?.id);  
+      console.log( res)      
+      if (res) {
+        router.push("/cart");
+      }
     } catch (error) {
       console.error(error);
     } finally {

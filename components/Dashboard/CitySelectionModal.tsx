@@ -7,8 +7,8 @@ import {
     FlatList,
     StyleSheet,
     Keyboard,
-    StatusBar,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../Themed';
 import { EllipsisLoader } from '../EllipsisLoader';
@@ -56,11 +56,12 @@ export const CitySelectionModal = ({
             navigationBarTranslucent
             onRequestClose={onClose}
         >
-            <View style={styles.safeArea}>
+            <SafeAreaProvider>
+            <SafeAreaView style={styles.safeArea} edges={['top', 'right', 'left', 'bottom']}>
             <View style={styles.container}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.8}>
-                        <Ionicons name="close" size={20} color="000000" />
+                        <Ionicons name="close" size={20} color="#000000" />
                     </TouchableOpacity>
                     <Text style={styles.title}>{title}</Text>
                     <View style={{ width: 36 }} />
@@ -113,7 +114,8 @@ export const CitySelectionModal = ({
                     />
                 )}
             </View>
-            </View>
+            </SafeAreaView>
+            </SafeAreaProvider>
         </Modal>
     );
 };
@@ -126,7 +128,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingTop: (StatusBar.currentHeight ?? 0) + 14,
         paddingVertical: 14,
         borderBottomWidth: 1,
         borderBottomColor: '#D7D8DB',

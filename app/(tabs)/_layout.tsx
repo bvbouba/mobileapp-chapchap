@@ -4,7 +4,6 @@ import { useColorScheme, StyleSheet } from 'react-native';
 
 import { Text, View } from '../../components/Themed';
 import Colors from '../../constants/Colors';
-import { Header } from '../../components/layout/Header';
 
 /**
  * You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
@@ -53,8 +52,7 @@ export default function TabLayout() {
         name="trips"
         options={{
           title: 'Mes Voyages',
-          headerShown: true,
-          header: () => <Header  title="Mes Voyages"/>,
+          headerShown: false,
           tabBarIcon: ({ color }) => {
             return <TabBarIcon name="ticket-outline"
               color={color}
@@ -66,8 +64,7 @@ export default function TabLayout() {
         name="account"
         options={{
           title: 'Profil',
-          headerShown: true,
-          header: () => <Header  title="Profil"/>,
+          headerShown: false,
           tabBarIcon: ({ color }) => <TabBarIcon name="person-outline" color={color} />,
         }}
       />

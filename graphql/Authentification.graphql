@@ -70,6 +70,10 @@ mutation CreateToken($email:String!,$password:String!){
 mutation refreshToken($refreshToken:String!){
   tokenRefresh(refreshToken: $refreshToken) {
     token
+    errors {
+      field
+      message
+    }
   }
 }
 

@@ -5,13 +5,23 @@ import QRCode from 'react-native-qrcode-svg';
 import { generateShortCode } from '../../utils/generateShortCode';
 import { OrderFragment } from '../../saleor/api.generated';
 import { getTripInformation } from '../../utils/attribute';
+import { PLATFORM_FEE_PRODUCT_SLUG } from '../../utils/ensurePlatformFeeInCheckout';
 
 const { width } = Dimensions.get('window');
+const TICKET_PROOF_IMAGE_URL_KEY = "ticket_proof_image_url";
+type OrderMetadataItem = { key: string; value: string };
 
 export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
-  const attributes = order.lines[0]?.variant?.attributes || [];
+  const ticketLines = order.lines.filter(
+    (line) => line.variant?.product?.slug !== PLATFORM_FEE_PRODUCT_SLUG
+  );
+  const ticketLine = ticketLines[0] ?? order.lines[0];
+  const ticketCount = ticketLines.reduce((sum, line) => sum + line.quantity, 0);
+  const attributes = ticketLine?.variant?.attributes || [];
   const { departureCity, arrivalCity, departureTimeStr, arrivalTimeStr, company, formattedDate } = getTripInformation({ attributes });
   const confirmationCode = generateShortCode(order.id);
+  const orderMetadata = ((order as OrderFragment & { metadata?: OrderMetadataItem[] }).metadata ?? []);
+  const ticketImageUrl = orderMetadata.find((item) => item.key === TICKET_PROOF_IMAGE_URL_KEY)?.value;
 
   // LOGIQUE DE PARSING POUR TOUS LES PASSAGERS
   const getPassengers = () => {
@@ -69,7 +79,7 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
           </View>
           <View style={[styles.infoItem, { alignItems: 'flex-end' }]}>
             <Text style={styles.label}>Places</Text>
-            <Text style={styles.infoValue}>{order.lines.length}</Text>
+            <Text style={styles.infoValue}>{ticketCount}</Text>
           </View>
         </View>
 
@@ -96,22 +106,36 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
 
       <View style={styles.dashedLine} />
 
-      {/* Partie Basse : QR Code et Code court */}
+      {/* Partie Basse : Photo du billet et QR optionnel */}
       <View style={styles.footerSection}>
-        <Text style={styles.qrLabel}>Scanner pour vérification</Text>
-        
-        <View style={styles.qrContainer}>
-          <QRCode
-            value={order.id}
-            size={140}
-            color="#1E293B"
-            backgroundColor="white"
-          />
-        </View>
+        <Text style={styles.qrLabel}>Photo du billet physique</Text>
+
+        {ticketImageUrl ? (
+          <Image source={{ uri: ticketImageUrl }} style={styles.ticketProofImage} resizeMode="contain" />
+        ) : (
+          <View style={styles.ticketProofPlaceholder}>
+            <MaterialCommunityIcons name="image-outline" size={32} color="#02838A" />
+            <Text style={styles.ticketProofPlaceholderText}>
+              La photo du billet sera disponible après la validation par la compagnie.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.confirmationWrapper}>
             <Text style={styles.label}>Code de Confirmation</Text>
             <Text style={styles.codeText}>{confirmationCode}</Text>
+        </View>
+
+        <View style={styles.optionalQrBlock}>
+          <Text style={styles.optionalQrLabel}>Scan optionnel</Text>
+          <View style={styles.qrContainer}>
+            <QRCode
+              value={order.id}
+              size={92}
+              color="#111827"
+              backgroundColor="white"
+            />
+          </View>
         </View>
       </View>
     </View>
@@ -133,16 +157,16 @@ const styles = StyleSheet.create({
   },
   topSection: { padding: 20, alignItems: 'center' },
   logo: { width: 140, height: 45 },
-  companyName: { fontSize: 13, fontWeight: '800', color: '#64748B', marginTop: 8, textTransform: 'uppercase', letterSpacing: 1 },
+  companyName: { fontSize: 13, fontFamily: 'TTNormsPro-Bold', color: '#606060', marginTop: 8, textTransform: 'uppercase', letterSpacing: 1 },
   dashedLine: { height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: '#E2E8F0', marginHorizontal: 15 },
   bodySection: { padding: 20 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   infoGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   infoItem: { flex: 1 },
-  label: { fontSize: 10, color: '#94A3B8', textTransform: 'uppercase', marginBottom: 4, fontWeight: '700', letterSpacing: 0.5 },
-  time: { fontSize: 20, fontWeight: '900', color: '#1E293B' },
-  city: { fontSize: 13, color: '#64748B', fontWeight: '500' },
-  infoValue: { fontSize: 15, fontWeight: '700', color: '#1E293B' },
+  label: { fontSize: 10, color: '#606060', textTransform: 'uppercase', marginBottom: 4, fontFamily: 'TTNormsPro-Bold', letterSpacing: 0.5 },
+  time: { fontSize: 20, fontFamily: 'TTNormsPro-Bold', color: '#000000' },
+  city: { fontSize: 13, color: '#606060', fontFamily: 'TTNormsPro-Regular' },
+  infoValue: { fontSize: 15, fontFamily: 'TTNormsPro-Bold', color: '#000000' },
   
   // Styles pour la liste des passagers
   passengerListContainer: {
@@ -158,38 +182,79 @@ const styles = StyleSheet.create({
   },
   passengerName: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
+    fontFamily: 'TTNormsPro-Regular',
+    color: '#000000',
     textTransform: 'capitalize'
   },
 
   priceContainer: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F1F1F1',
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#F1F5F9'
+    borderColor: '#D7D8DB'
   },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 },
-  priceLabel: { fontSize: 12, color: '#475569', fontWeight: '500' },
-  priceValue: { fontSize: 15, fontWeight: '800', color: '#16A34A' },
+  priceLabel: { fontSize: 12, color: '#606060', fontFamily: 'TTNormsPro-Regular' },
+  priceValue: { fontSize: 15, fontFamily: 'TTNormsPro-Bold', color: '#16A34A' },
 
   footerSection: { 
     padding: 20, 
     alignItems: 'center', 
     backgroundColor: '#FFFFFF',
   },
-  qrLabel: { fontSize: 10, fontWeight: '700', color: '#64748B', textTransform: 'uppercase', marginBottom: 10 },
+  qrLabel: { fontSize: 10, fontFamily: 'TTNormsPro-Bold', color: '#606060', textTransform: 'uppercase', marginBottom: 10 },
+  ticketProofImage: {
+    width: '100%',
+    height: 260,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#D7D8DB',
+    backgroundColor: '#F1F1F1',
+    marginBottom: 16,
+  },
+  ticketProofPlaceholder: {
+    width: '100%',
+    minHeight: 160,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#D7D8DB',
+    backgroundColor: '#E6F5F3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+    marginBottom: 16,
+  },
+  ticketProofPlaceholderText: {
+    marginTop: 10,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#02838A',
+    fontFamily: 'TTNormsPro-Regular',
+    textAlign: 'center',
+  },
   qrContainer: {
     padding: 12,
     backgroundColor: 'white',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    marginBottom: 15,
+    borderColor: '#D7D8DB',
   },
   confirmationWrapper: {
-    alignItems: 'center'
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  codeText: { fontSize: 28, fontWeight: '900', color: '#1E293B', letterSpacing: 6 },
+  codeText: { fontSize: 28, fontFamily: 'TTNormsPro-Bold', color: '#000000', letterSpacing: 6 },
+  optionalQrBlock: {
+    alignItems: 'center',
+    opacity: 0.85,
+  },
+  optionalQrLabel: {
+    fontSize: 10,
+    color: '#606060',
+    fontFamily: 'TTNormsPro-Bold',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
 });

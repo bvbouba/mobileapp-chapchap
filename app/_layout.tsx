@@ -29,6 +29,9 @@ export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
+// Keep native splash visible until fonts are ready (expo-router + expo-splash-screen).
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),

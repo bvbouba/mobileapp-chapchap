@@ -3,8 +3,9 @@ import { StyleSheet, Pressable, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { OrderFragment } from "../../saleor/api.generated";
-import { Text, colors } from "../Themed";
+import { Text } from "../Themed";
 import { getTripInformation } from "../../utils/attribute";
+import { PLATFORM_FEE_PRODUCT_SLUG } from "../../utils/ensurePlatformFeeInCheckout";
 
 interface Props {
     order: OrderFragment;
@@ -12,8 +13,14 @@ interface Props {
 
 const OrderListItem: FC<Props> = ({ order }) => {
     const router = useRouter();
+    const ticketLines = order.lines.filter(
+        (line) => line.variant?.product?.slug !== PLATFORM_FEE_PRODUCT_SLUG
+    );
+    const ticketLine = ticketLines[0] ?? order.lines[0];
+    const ticketCount = ticketLines.reduce((sum, line) => sum + line.quantity, 0);
+    const status = getOrderStatusDisplay(order.status);
     
-    const attributes = order.lines[0]?.variant?.attributes || [];
+    const attributes = ticketLine?.variant?.attributes || [];
     const {
         departureCity,
         arrivalCity,
@@ -27,23 +34,24 @@ const OrderListItem: FC<Props> = ({ order }) => {
         pathname: `/orderDetails/${order.id}`,
     });
 
-   
 
     return (
         <Pressable onPress={onPress} style={({ pressed }) => [
             styles.card,
             pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }
         ]}>
-            {/* Header: Compagnie & Statut */}
             <View style={styles.header}>
                 <View style={styles.companyRow}>
-                    <MaterialCommunityIcons name="bus" size={16} color={colors.blue} />
+                    <View style={styles.companyIcon}>
+                        <MaterialCommunityIcons name="bus" size={14} color="#02838A" />
+                    </View>
                     <Text style={styles.companyText}>{company || "Transport"}</Text>
                 </View>
-      
+                <View style={[styles.statusBadge, { backgroundColor: status.backgroundColor, borderColor: status.borderColor }]}>
+                    <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+                </View>
             </View>
 
-            {/* Corps: Trajet & Heures */}
             <View style={styles.tripContent}>
                 <View style={styles.stop}>
                     <Text style={styles.time}>{departureTimeStr}</Text>
@@ -51,11 +59,11 @@ const OrderListItem: FC<Props> = ({ order }) => {
                 </View>
 
                 <View style={styles.pathContainer}>
-                    <View style={styles.dot} />
-                    <View style={styles.line} />
-                    <MaterialCommunityIcons name="chevron-right" size={16} color="#CBD5E1" />
-                    <View style={styles.line} />
-                    <View style={[styles.dot, styles.dotEnd]} />
+                    <View style={styles.dotFilled} />
+                    <View style={styles.lineDashed} />
+                    <MaterialCommunityIcons name="bus" size={16} color="#02838A" style={styles.busIcon} />
+                    <View style={styles.lineDashed} />
+                    <View style={styles.dotOutline} />
                 </View>
 
                 <View style={[styles.stop, { alignItems: 'flex-end' }]}>
@@ -64,15 +72,14 @@ const OrderListItem: FC<Props> = ({ order }) => {
                 </View>
             </View>
 
-            {/* Footer: Date & Nombre de passagers */}
             <View style={styles.footer}>
                 <View style={styles.infoGroup}>
-                    <MaterialCommunityIcons name="calendar-range" size={14} color="#94A3B8" />
+                    <MaterialCommunityIcons name="calendar-range" size={14} color="#606060" />
                     <Text style={styles.footerText}>{formattedDate}</Text>
                 </View>
                 <View style={styles.infoGroup}>
-                    <MaterialCommunityIcons name="account-group-outline" size={14} color="#94A3B8" />
-                    <Text style={styles.footerText}>{order.lines.length} billet(s)</Text>
+                    <MaterialCommunityIcons name="account-group-outline" size={14} color="#606060" />
+                    <Text style={styles.footerText}>{ticketCount} billet(s)</Text>
                 </View>
                 <Text style={styles.priceText}>
                     {order.total.gross.amount} {order.total.gross.currency}
@@ -84,22 +91,46 @@ const OrderListItem: FC<Props> = ({ order }) => {
 
 export default OrderListItem;
 
+function getOrderStatusDisplay(status?: string | null) {
+    const normalized = status?.toUpperCase();
+    if (normalized === "UNCONFIRMED") {
+        return {
+            label: "En attente",
+            backgroundColor: "#FFF7ED",
+            borderColor: "#FED7AA",
+            color: "#C2410C",
+        };
+    }
+    if (normalized === "FULFILLED") {
+        return {
+            label: "Terminé",
+            backgroundColor: "#ECFDF3",
+            borderColor: "#BBF7D0",
+            color: "#15803D",
+        };
+    }
+    return {
+        label: "Confirmé",
+        backgroundColor: "#E6F5F3",
+        borderColor: "#B9E6DF",
+        color: "#02838A",
+    };
+}
+
 const styles = StyleSheet.create({
     card: {
         backgroundColor: '#FFFFFF',
         marginHorizontal: 16,
-        marginVertical: 8,
+        marginBottom: 12,
         borderRadius: 16,
         padding: 16,
-        // Ombre iOS
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        // Ombre Android
-        elevation: 3,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 2,
+        elevation: 2,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: '#D7D8DB',
     },
     header: {
         flexDirection: 'row',
@@ -110,23 +141,34 @@ const styles = StyleSheet.create({
     companyRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 8,
+        flex: 1,
+        paddingRight: 10,
+    },
+    companyIcon: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: "#E6F5F3",
+        alignItems: "center",
+        justifyContent: "center",
     },
     companyText: {
-        fontSize: 12,
-        fontWeight: '800',
-        color: colors.blue,
+        fontSize: 13,
+        fontFamily: 'TTNormsPro-Bold',
+        color: '#000000',
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        flexShrink: 1,
     },
     statusBadge: {
-        paddingHorizontal: 8,
+        paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 6,
+        borderRadius: 999,
+        borderWidth: 1,
     },
     statusText: {
-        fontSize: 10,
-        fontWeight: '700',
+        fontSize: 11,
+        fontFamily: 'TTNormsPro-Bold',
         textTransform: 'uppercase',
     },
     tripContent: {
@@ -140,41 +182,53 @@ const styles = StyleSheet.create({
     },
     time: {
         fontSize: 20,
-        fontWeight: '900',
-        color: '#1E293B',
+        fontFamily: 'TTNormsPro-Bold',
+        color: '#000000',
     },
     city: {
-        fontSize: 14,
-        color: '#64748B',
-        fontWeight: '500',
+        fontSize: 12,
+        color: '#606060',
+        fontFamily: 'TTNormsPro-Regular',
         marginTop: 2,
     },
     pathContainer: {
-        flexDirection: 'row',
+        flexDirection: 'column',
         alignItems: 'center',
-        paddingHorizontal: 10,
-        flex: 0.8,
+        justifyContent: 'center',
+        width: 42,
+        minHeight: 74,
     },
-    line: {
+    lineDashed: {
         flex: 1,
-        height: 1.5,
-        backgroundColor: '#E2E8F0',
+        width: 1,
+        minHeight: 18,
+        borderLeftWidth: 1,
+        borderStyle: 'dashed',
+        borderColor: '#D7D8DB',
     },
-    dot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: colors.blue,
+    dotFilled: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#02838A',
     },
-    dotEnd: {
-        backgroundColor: colors.red,
+    dotOutline: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        borderWidth: 2,
+        borderColor: '#EB1700',
+        backgroundColor: '#FFFFFF',
+    },
+    busIcon: {
+        marginVertical: 4,
     },
     footer: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
+        borderTopColor: '#D7D8DB',
     },
     infoGroup: {
         flexDirection: 'row',
@@ -184,13 +238,13 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 12,
-        color: '#94A3B8',
-        fontWeight: '500',
+        color: '#606060',
+        fontFamily: 'TTNormsPro-Regular',
     },
     priceText: {
         marginLeft: 'auto',
-        fontSize: 15,
-        fontWeight: '800',
-        color: colors.blue,
+        fontSize: 16,
+        fontFamily: 'TTNormsPro-Bold',
+        color: '#02838A',
     },
 });

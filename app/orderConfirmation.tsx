@@ -14,14 +14,12 @@ const OrderConfirmation = () => {
         <ScrollView style={styles.container}>
             <View style={styles.content}>
 
-                {/* Section Succès */}
+                {/* Section statut */}
                 <View style={styles.successSection}>
-                    <View style={styles.iconCircle}>
-                        <MaterialCommunityIcons name="check" size={30} color="white" />
-                    </View>
-                    <Text style={styles.successTitle}>Commande confirmée !</Text>
+            
+                    <Text style={styles.successTitle}>Commande envoyée !</Text>
                     <Text style={styles.successSubtitle}>
-                        Votre confirmation SMS/Email est en route !
+                        Nous attendons la confirmation de la compagnie de transport...
                     </Text>
                 </View>
 
@@ -36,16 +34,6 @@ const OrderConfirmation = () => {
                         <Text style={styles.confirmationLabel}>Numéro de confirmation</Text>
                         <Text style={styles.confirmationNumber}>{confirmationCode}</Text>
                     </View>
-                </View>
-
-                <View style={styles.separator} />
-
-                {/* ALERTE : IMPRESSION OBLIGATOIRE */}
-                <View style={styles.warningBox}>
-                    <MaterialCommunityIcons name="printer-alert" size={20} color="#991B1B" style={{ marginRight: 8 }} />
-                    <Text style={styles.warningTitle}>
-                        Assurez-vous d'imprimer votre billet ou de le récupérer au guichet de la gare.
-                    </Text>
                 </View>
 
                 <Summary
@@ -72,7 +60,17 @@ const styles = StyleSheet.create({
         width: 50,
         height: 50,
         borderRadius: 25,
-        backgroundColor: "#22C55E",
+        backgroundColor: "#F97316",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    pulseRing: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: "#FFEDD5",
+        borderWidth: 10,
+        borderColor: "#FED7AA",
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 16,
@@ -128,20 +126,41 @@ const styles = StyleSheet.create({
         marginVertical: 20,
     },
 
-    warningBox: {
-        flexDirection: "row",
-        backgroundColor: "#FEF2F2",
+    statusBox: {
+        backgroundColor: "#FFF7ED",
         borderWidth: 1,
-        borderColor: "#FCA5A5",
+        borderColor: "#FED7AA",
         borderRadius: 12,
         padding: 16,
         marginBottom: 24,
-        alignItems: "center"
     },
-    warningTitle: {
-        flex: 1,
-        color: "#991B1B",
+    statusHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 12,
+        gap: 8,
+    },
+    statusTitle: {
+        color: "#9A3412",
         fontWeight: "700",
+        fontSize: 14,
+    },
+    progressTrack: {
+        height: 8,
+        borderRadius: 999,
+        backgroundColor: "#FED7AA",
+        overflow: "hidden",
+        marginBottom: 12,
+    },
+    progressFill: {
+        width: "62%",
+        height: "100%",
+        borderRadius: 999,
+        backgroundColor: "#F97316",
+    },
+    statusText: {
+        color: "#9A3412",
+        fontWeight: "600",
         fontSize: 13,
         lineHeight: 18
     },

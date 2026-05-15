@@ -19,7 +19,7 @@ interface CartContextModel {
     refreshCart: () => Promise<CheckoutFragment | undefined>;
     removeCart: () => Promise<void>;
     setCart: (cart: CheckoutFragment) => void;
-    addItem: (variantId: string) => Promise<void>;
+    addItem: (variantId: string) => Promise<CheckoutFragment | undefined>;
     updateItemQuantity: (lineId: string, quantity: number) => Promise<void>;
 }
 
@@ -27,7 +27,7 @@ const CartContext = createContext<CartContextModel>({
     cart: undefined,
     loading: undefined,
     loaded: undefined,
-    addItem: () => Promise.resolve(),
+    addItem: () => Promise.resolve(undefined),
     removeCart: () => Promise.resolve(),
     setCart: () => Function,
     refreshCart: () => Promise.resolve(undefined),
@@ -77,6 +77,29 @@ export const CartProvider: FC<PropsWithChildren> = ({ children }) => {
         }
     };
 
+    const createCartWithItem = async (variantId: string) => {
+        const newCheckout = await createCheckout({
+            variables: {
+                channel: getConfig().channel,
+                lines: [{ variantId, quantity: 1 }]
+            }
+        });
+
+        const errors = newCheckout.data?.checkoutCreate?.errors ?? [];
+        if (errors.length > 0) {
+            throw new Error(errors[0]?.message || "Impossible de creer le panier.");
+        }
+
+        const checkout = newCheckout.data?.checkoutCreate?.checkout as CheckoutFragment | undefined;
+        if (!checkout?.id) {
+            throw new Error("Le serveur n'a pas retourne de panier.");
+        }
+
+        await setCheckoutId(checkout.id);
+        setCart(checkout);
+        return checkout;
+    };
+
     const addItem = async (variantId: string) => {
         setLoading(true);
         try {
@@ -102,26 +125,24 @@ export const CartProvider: FC<PropsWithChildren> = ({ children }) => {
                         productVariantId: variantId
                     }
                 });
-                
-                setCart(updatedCart.data?.checkoutLinesAdd?.checkout as CheckoutFragment);
-            } else {
-                // CREATE NEW CHECKOUT
-                const newCheckout = await createCheckout({
-                    variables: {
-                        channel: getConfig().channel,
-                        lines: [{ variantId, quantity: 1 }]
-                    }
-                });
 
-                const newId = newCheckout.data?.checkoutCreate?.checkout?.id;
-                if (newId) {
-                    await setCheckoutId(newId);
-                    setCart(newCheckout.data?.checkoutCreate?.checkout as CheckoutFragment);
+                const errors = updatedCart.data?.checkoutLinesAdd?.errors ?? [];
+                const checkout = updatedCart.data?.checkoutLinesAdd?.checkout as CheckoutFragment | undefined;
+                
+                if (errors.length > 0 || !checkout) {
+                    await removeCheckoutId();
+                    return await createCartWithItem(variantId);
                 }
+
+                setCart(checkout);
+                return checkout;
+            } else {
+                return await createCartWithItem(variantId);
             }
         } catch (error) {
             console.error("Error adding item:", error);
             Alert.alert("Erreur", "Impossible d'ajouter le billet au panier.");
+            return undefined;
         } finally {
             setLoading(false);
             await refreshCart();

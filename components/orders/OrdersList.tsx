@@ -1,5 +1,5 @@
-import { FC, useState, useMemo, useRef, useEffect } from "react";
-import { FlatList, StyleSheet, View, Pressable, Dimensions } from "react-native";
+import { FC, useState, useMemo, useRef } from "react";
+import { FlatList, StyleSheet, View, Pressable, Dimensions, StatusBar } from "react-native";
 import { useOrderContext } from "../../context/useOrderContext";
 import { OrderFragment } from "../../saleor/api.generated";
 import { Text, colors } from "../Themed";
@@ -8,6 +8,8 @@ import { getTripInformation } from "../../utils/attribute";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LoginPrompt } from "../account/LoginPrompt";
 import { useAuth } from "../../lib/providers/authProvider";
+import { PLATFORM_FEE_PRODUCT_SLUG } from "../../utils/ensurePlatformFeeInCheckout";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -16,22 +18,25 @@ type TabType = 'upcoming' | 'past';
 const OrdersList: FC = () => {
     const { orders } = useOrderContext();
     const { authenticated } = useAuth();
+    const insets = useSafeAreaInsets();
     const [activeTab, setActiveTab] = useState<TabType>('upcoming');
     const scrollRef = useRef<FlatList>(null);
     const now = new Date();
 
     const getTravelDate = (order: OrderFragment): Date => {
-        const attributes = order.lines[0]?.variant?.attributes || [];
+        const ticketLine = order.lines.find(
+            (line) => line.variant?.product?.slug !== PLATFORM_FEE_PRODUCT_SLUG
+        ) ?? order.lines[0];
+        const attributes = ticketLine?.variant?.attributes || [];
         const { departureDate } = getTripInformation({ attributes });
         return departureDate || new Date(order.created);
     };
 
     const { upcomingOrders, pastOrders } = useMemo(() => {
-        if (!authenticated) return { upcomingOrders: [], pastOrders: [] };
         const upcoming = orders.filter(o => getTravelDate(o) >= now).sort((a, b) => getTravelDate(a).getTime() - getTravelDate(b).getTime());
         const past = orders.filter(o => getTravelDate(o) < now).sort((a, b) => getTravelDate(b).getTime() - getTravelDate(a).getTime());
         return { upcomingOrders: upcoming, pastOrders: past };
-    }, [orders, authenticated]);
+    }, [orders]);
 
     // Fonction pour changer d'onglet avec animation
     const handleTabPress = (tab: TabType) => {
@@ -52,22 +57,38 @@ const OrdersList: FC = () => {
     const renderEmptyState = (type: TabType) => (
         <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
-                <MaterialCommunityIcons name="ticket-outline" size={40} color="#94A3B8" />
+                <MaterialCommunityIcons name="ticket-confirmation-outline" size={38} color="#02838A" />
             </View>
             <Text style={styles.emptyTitle}>Aucun voyage</Text>
             <Text style={styles.emptySubtitle}>
                 {type === 'upcoming' ? "Vous n'avez pas de voyages prévus." : "Votre historique de voyage est vide."}
             </Text>
+            {!authenticated && (
+                <Text style={styles.guestHint}>Connectez-vous pour synchroniser vos voyages sur tous vos appareils.</Text>
+            )}
         </View>
     );
 
     return (
         <View style={styles.mainContainer}>
-            {/* TABS SELECTOR */}
+            <StatusBar barStyle="dark-content" backgroundColor="#F1F1F1" />
+            <View style={[styles.header, { paddingTop: insets.top + 18 }]}>
+                <Text style={styles.title}>Mes voyages</Text>
+                <Text style={styles.subtitle}>
+                    Retrouvez vos trajets à venir et vos anciennes réservations.
+                </Text>
+            </View>
+
+            {!authenticated && orders.length === 0 ? (
+                <View style={styles.loginPromptWrapper}>
+                    <LoginPrompt />
+                </View>
+            ) : null}
+
             <View style={styles.tabsWrapper}>
                 <Pressable onPress={() => handleTabPress('upcoming')} style={[styles.tabButton, activeTab === 'upcoming' && styles.activeTabButton]}>
                     <Text style={[styles.tabText, activeTab === 'upcoming' ? styles.activeTabText : styles.inactiveTabText]}>
-                        À venir {authenticated && upcomingOrders.length > 0 ? `(${upcomingOrders.length})` : ''}
+                        À venir {upcomingOrders.length > 0 ? `(${upcomingOrders.length})` : ''}
                     </Text>
                 </Pressable>
 
@@ -76,47 +97,101 @@ const OrdersList: FC = () => {
                 </Pressable>
             </View>
 
-            {!authenticated ? (
-                <LoginPrompt />
-            ) : (
-                <FlatList
-                    ref={scrollRef}
-                    data={[upcomingOrders, pastOrders]} // On passe les deux tableaux
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    onMomentumScrollEnd={onMomentumScrollEnd}
-                    getItemLayout={(_, index) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * index, index })}
-                    renderItem={({ item, index }) => (
-                        <View style={{ width: SCREEN_WIDTH }}>
-                            <FlatList
-                                data={item}
-                                keyExtractor={(order) => order.id}
-                                renderItem={({ item: order }) => <OrderListItem order={order} />}
-                                contentContainerStyle={styles.listContent}
-                                ListEmptyComponent={() => renderEmptyState(index === 0 ? 'upcoming' : 'past')}
-                            />
-                        </View>
-                    )}
-                />
-            )}
+            <FlatList
+                ref={scrollRef}
+                data={[upcomingOrders, pastOrders]}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={onMomentumScrollEnd}
+                getItemLayout={(_, index) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * index, index })}
+                renderItem={({ item, index }) => (
+                    <View style={{ width: SCREEN_WIDTH }}>
+                        <FlatList
+                            data={item}
+                            keyExtractor={(order) => order.id}
+                            renderItem={({ item: order }) => <OrderListItem order={order} />}
+                            contentContainerStyle={styles.listContent}
+                            ListEmptyComponent={() => renderEmptyState(index === 0 ? 'upcoming' : 'past')}
+                        />
+                    </View>
+                )}
+            />
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    mainContainer: { flex: 1, backgroundColor: "#FFFFFF" },
-    tabsWrapper: { flexDirection: 'row', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-    tabButton: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 3, borderBottomColor: 'transparent' },
-    activeTabButton: { borderBottomColor: colors.red },
-    tabText: { fontSize: 13, fontWeight: '800', textTransform: 'uppercase' },
-    activeTabText: { color: colors.red },
-    inactiveTabText: { color: '#1E293B', opacity: 0.5 },
-    listContent: { paddingVertical: 16, paddingBottom: 40 },
-    emptyContainer: { width: SCREEN_WIDTH, flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 60 },
-    emptyIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-    emptyTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B', marginBottom: 8 },
-    emptySubtitle: { fontSize: 14, color: '#64748B', textAlign: 'center' },
+    mainContainer: { flex: 1, 
+        backgroundColor: "#F1F1F1" 
+    },
+    header: {
+        paddingHorizontal: 16,
+        paddingTop: 18,
+        paddingBottom: 14,
+    },
+    title: {
+        fontSize: 28,
+        color: "#000000",
+        fontFamily: "TTNormsPro-Bold",
+    },
+    subtitle: {
+        fontSize: 14,
+        color: "#606060",
+        fontFamily: "TTNormsPro-Regular",
+        marginTop: 6,
+        lineHeight: 20,
+    },
+    loginPromptWrapper: {
+        marginHorizontal: 16,
+        marginBottom: 12,
+        overflow: "hidden",
+        borderRadius: 16,
+    },
+    tabsWrapper: {
+        flexDirection: 'row',
+        marginHorizontal: 16,
+        marginBottom: 14,
+        padding: 4,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: "#D7D8DB",
+    },
+    tabButton: {
+        flex: 1,
+        paddingVertical: 12,
+        alignItems: 'center',
+        borderRadius: 10,
+    },
+    activeTabButton: { backgroundColor: colors.red },
+    tabText: { fontSize: 13, fontFamily: 'TTNormsPro-Bold', textTransform: 'uppercase' },
+    activeTabText: { color: "#FFFFFF" },
+    inactiveTabText: { color: '#606060' },
+    listContent: { paddingBottom: 40 },
+    emptyContainer: {
+        marginHorizontal: 16,
+        minHeight: 320,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 28,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: "#D7D8DB",
+    },
+    emptyIconCircle: {
+        width: 78,
+        height: 78,
+        borderRadius: 39,
+        backgroundColor: '#E6F5F3',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 18,
+    },
+    emptyTitle: { fontSize: 20, fontFamily: 'TTNormsPro-Bold', color: '#000000', marginBottom: 8 },
+    emptySubtitle: { fontSize: 14, color: '#606060', fontFamily: 'TTNormsPro-Regular', textAlign: 'center', lineHeight: 20 },
+    guestHint: { fontSize: 13, color: '#02838A', fontFamily: 'TTNormsPro-Bold', textAlign: 'center', marginTop: 14, lineHeight: 19 },
 });
 
 export default OrdersList;
