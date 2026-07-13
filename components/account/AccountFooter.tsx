@@ -17,7 +17,7 @@ export const AccountFooter = () => (
         <Text style={styles.link}>Confidentialité</Text>
       </Pressable>
     </View>
-    <Text style={styles.version}>ChapChap Tickets v1.0.0</Text>
+    <Text style={styles.version}>ChapTicket v1.0.0</Text>
   </View>
 );
 

@@ -1,7 +1,12 @@
 import React from 'react';
-import { ImageBackground, StyleSheet, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Text } from '../Themed';
+import { Image, ImageBackground, Platform, StyleSheet, View } from 'react-native';
+
+/** iOS renders translucent overlays more prominently than Android — tune per platform. */
+const OVERLAY_WHITE = Platform.select({
+  ios: 0.58,
+  android: 0.58,
+  default: 0.5,
+}) as number;
 
 const HeroHeader = () => {
   return (
@@ -11,15 +16,20 @@ const HeroHeader = () => {
         style={styles.heroBg}
         imageStyle={styles.heroImage}
       >
-        <View style={styles.overlay} />
+        <View
+          style={[
+            styles.overlaySoft,
+            { backgroundColor: `rgba(255, 255, 255, ${OVERLAY_WHITE})` },
+          ]}
+        />
+
         <View style={styles.logoRow}>
-          <View style={styles.logoBadge}>
-            <MaterialCommunityIcons name="ticket-confirmation" size={24} color="#FFFFFF" />
-          </View>
-          <View>
-            <Text style={styles.brandName}>ChapChap Tickets</Text>
-            <Text style={styles.tagline}>Voyagez simple, voyagez vite</Text>
-          </View>
+          <Image
+            source={require('../../assets/images/logo/3.png')}
+            style={styles.logo}
+            resizeMode="contain"
+            accessibilityLabel="ChapTicket"
+          />
         </View>
       </ImageBackground>
     </View>
@@ -29,7 +39,7 @@ const HeroHeader = () => {
 const styles = StyleSheet.create({
   topHalf: {
     flex: 1,
-    backgroundColor: '#EB1700',
+    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -37,38 +47,23 @@ const styles = StyleSheet.create({
   heroBg: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   heroImage: {
     resizeMode: 'cover',
   },
-  overlay: {
+  overlaySoft: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.14)',
   },
   logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingLeft: 30,
-  },
-  logoBadge: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#02838A',
+    paddingHorizontal: 30,
+    zIndex: 1,
   },
-  brandName: {
-    fontSize: 30,
-    color: '#fff',
-    fontFamily: 'TTNormsPro-Bold',
-  },
-  tagline: {
-    color: '#F1F1F1',
-    fontSize: 14,
-    marginTop: 5,
-    fontFamily: 'TTNormsPro-Regular',
+  logo: {
+    width: 220,
+    height: 80,
   },
 });
 
