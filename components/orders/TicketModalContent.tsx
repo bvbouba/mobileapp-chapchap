@@ -6,6 +6,7 @@ import { generateShortCode } from '../../utils/generateShortCode';
 import { OrderFragment } from '../../saleor/api.generated';
 import { getTripInformation } from '../../utils/attribute';
 import { PLATFORM_FEE_PRODUCT_SLUG } from '../../utils/ensurePlatformFeeInCheckout';
+import { colors } from '../Themed';
 
 const { width } = Dimensions.get('window');
 const TICKET_PROOF_IMAGE_URL_KEY = "ticket_proof_image_url";
@@ -114,7 +115,7 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
           <Image source={{ uri: ticketImageUrl }} style={styles.ticketProofImage} resizeMode="contain" />
         ) : (
           <View style={styles.ticketProofPlaceholder}>
-            <MaterialCommunityIcons name="image-outline" size={32} color="#02838A" />
+            <MaterialCommunityIcons name="image-outline" size={32} color={colors.green} />
             <Text style={styles.ticketProofPlaceholderText}>
               La photo du billet sera disponible après la validation par la compagnie.
             </Text>
@@ -230,7 +231,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 13,
     lineHeight: 19,
-    color: '#02838A',
+    color: colors.green,
     fontFamily: 'TTNormsPro-Regular',
     textAlign: 'center',
   },

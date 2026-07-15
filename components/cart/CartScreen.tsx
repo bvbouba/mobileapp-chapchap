@@ -3,7 +3,7 @@ import { Alert, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-na
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Divider, PaddedView, Text, View } from "../Themed";
+import { colors, Divider, PaddedView, Text, View } from "../Themed";
 import { useCartContext } from "../../context/useCartContext";
 import { getConfig } from "../../config";
 import { getTripInformation } from '../../utils/attribute';
@@ -100,7 +100,7 @@ const CartScreen = () => {
         checkoutLinesAdd: (args) => checkoutLinesAdd(args),
         refreshCart,
       });
-
+  
       if (!feeResult.ok && feeResult.reason === "mutation_error") {
         Alert.alert(
           "Erreur",
@@ -139,7 +139,7 @@ const CartScreen = () => {
           </View>
           
           <View style={styles.iconContainer}>
-            <Ionicons name="person-add-outline" size={15} color="#02838A" />
+            <Ionicons name="person-add-outline" size={15} color={colors.green} />
             <Text style={styles.passengerActionText}>Passagers</Text>
           </View>
         </TouchableOpacity>
@@ -188,7 +188,7 @@ const CartScreen = () => {
                 activeOpacity={0.85}
               >
                 <Text style={styles.detailsBtnText}>{"Détails"}</Text>
-                <Ionicons name={showDetails ? "chevron-up" : "chevron-down"} size={12} color="#02838A" />
+                <Ionicons name={showDetails ? "chevron-up" : "chevron-down"} size={12} color={colors.green} />
               </TouchableOpacity>
             </View>
 
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     borderColor: '#D7D8DB'
   },
   countBadge: {
-    backgroundColor: '#02838A',
+    backgroundColor: colors.green,
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   },
   passengerActionText: {
     marginLeft: 4,
-    color: '#02838A',
+    color: colors.green,
     fontSize: 12,
     fontFamily: 'TTNormsPro-Bold',
   },
@@ -381,12 +381,12 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 999,
   },
-  detailsBtnText: { color: '#02838A', fontSize: 12, fontFamily: 'TTNormsPro-Bold' },
+  detailsBtnText: { color: colors.green, fontSize: 12, fontFamily: 'TTNormsPro-Bold' },
   inlineDetailsContainer: { width: '100%', minHeight: 200 }, // Ensure it doesn't jump too much
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   priceLabel: { fontSize: 12, color: '#606060', textTransform: 'uppercase', fontFamily: 'TTNormsPro-Bold' },
   passengerDetail: { fontSize: 14, color: '#000000', fontFamily: 'TTNormsPro-Regular' },
-  priceValue: { fontSize: 20, color: '#02838A', fontFamily: 'TTNormsPro-Bold' },
+  priceValue: { fontSize: 20, color: colors.green, fontFamily: 'TTNormsPro-Bold' },
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 999,
   },
-  goBackText: { color: '#02838A', fontFamily: 'TTNormsPro-Bold' },
+  goBackText: { color: colors.green, fontFamily: 'TTNormsPro-Bold' },
 });
 
 export default CartScreen;

@@ -7,14 +7,14 @@ import {
   Platform,
   UIManager,
 } from "react-native";
-import { Text } from "../../Themed";
+import { Text, colors } from "../../Themed";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const SECONDARY = "#02838A";
+const SECONDARY = colors.green;
 const DIVIDER = "#D7D8DB";
 
 export interface FilterOption {

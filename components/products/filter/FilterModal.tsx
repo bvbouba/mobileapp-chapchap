@@ -9,7 +9,7 @@ import {
   StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Text } from "../../Themed";
+import { Text, colors } from "../../Themed";
 import { AttributeFilterFragment } from "../../../saleor/api.generated";
 import { SectionFilter } from "./SectionFilter";
 
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     fontFamily: "TTNormsPro-Bold",
   },
   resetText: {
-    color: "#02838A",
+    color: colors.green,
     fontFamily: "TTNormsPro-Bold",
     fontSize: 14,
   },

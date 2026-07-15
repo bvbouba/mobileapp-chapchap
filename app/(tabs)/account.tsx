@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { StyleSheet, View, ScrollView, Modal, StatusBar } from "react-native";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View, ScrollView, StatusBar, BackHandler } from "react-native";
+import { Portal } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthHero } from "../../components/account/AuthHero";
 import { UserProfile } from "../../components/account/UserProfile";
@@ -20,6 +21,15 @@ export default function AccountScreen() {
     setMode(authMode);
     setModalVisible(true);
   };
+
+  useEffect(() => {
+    if (!modalVisible) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      setModalVisible(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, [modalVisible]);
 
   return (
     <View style={styles.container}>
@@ -53,31 +63,36 @@ export default function AccountScreen() {
         <AccountFooter />
       </ScrollView>
 
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        statusBarTranslucent
-        onRequestClose={() => setModalVisible(false)}
-      >
-        {mode === "login" ? (
-          <LoginForm
-            onClose={() => setModalVisible(false)}
-            onSwitchToSignup={() => setMode("signup")}
-          />
-        ) : (
-          <SignupForm
-            onClose={() => setModalVisible(false)}
-            onSwitchToLogin={() => setMode("login")}
-          />
-        )}
-      </Modal>
+      {/* Portal so country picker Modal is not nested (Android fullscreen). */}
+      <Portal>
+        {modalVisible ? (
+          <View style={styles.authOverlay} accessibilityViewIsModal>
+            {mode === "login" ? (
+              <LoginForm
+                onClose={() => setModalVisible(false)}
+                onSwitchToSignup={() => setMode("signup")}
+              />
+            ) : (
+              <SignupForm
+                onClose={() => setModalVisible(false)}
+                onSwitchToLogin={() => setMode("login")}
+              />
+            )}
+          </View>
+        ) : null}
+      </Portal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.grey100 },
+  authOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.background,
+    zIndex: 1000,
+    elevation: 1000,
+  },
   pageHeader: {
     paddingHorizontal: 16,
     paddingBottom: 12,

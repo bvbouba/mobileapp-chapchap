@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, Dimensions, Pressable } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Text } from '../../Themed';
+import { Text, colors } from '../../Themed';
 import { TripDetailsContent } from './TripDetailsContent';
 import { EllipsisLoader } from '../../EllipsisLoader';
 
@@ -62,7 +62,7 @@ export const TripDetailsModal = ({ isVisible, onClose, onBook, data, loading }: 
                             <Text style={styles.metaText}>{data.duration || "Durée non disponible"}</Text>
                         </View>
                         <View style={styles.metaPill}>
-                            <MaterialCommunityIcons name="cash-multiple" size={14} color="#02838A" />
+                            <MaterialCommunityIcons name="cash-multiple" size={14} color={colors.green} />
                             <Text style={styles.priceText}>{data.price}</Text>
                         </View>
                     </View>
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     priceText: {
         marginLeft: 5,
         fontSize: 13,
-        color: '#02838A',
+        color: colors.green,
         fontFamily: 'TTNormsPro-Bold',
     },
     detailsContainer: {

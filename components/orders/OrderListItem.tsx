@@ -3,7 +3,7 @@ import { StyleSheet, Pressable, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { OrderFragment } from "../../saleor/api.generated";
-import { Text } from "../Themed";
+import { Text, colors } from "../Themed";
 import { getTripInformation } from "../../utils/attribute";
 import { PLATFORM_FEE_PRODUCT_SLUG } from "../../utils/ensurePlatformFeeInCheckout";
 
@@ -43,7 +43,7 @@ const OrderListItem: FC<Props> = ({ order }) => {
             <View style={styles.header}>
                 <View style={styles.companyRow}>
                     <View style={styles.companyIcon}>
-                        <MaterialCommunityIcons name="bus" size={14} color="#02838A" />
+                        <MaterialCommunityIcons name="bus" size={14} color={colors.green} />
                     </View>
                     <Text style={styles.companyText}>{company || "Transport"}</Text>
                 </View>
@@ -61,7 +61,7 @@ const OrderListItem: FC<Props> = ({ order }) => {
                 <View style={styles.pathContainer}>
                     <View style={styles.dotFilled} />
                     <View style={styles.lineDashed} />
-                    <MaterialCommunityIcons name="bus" size={16} color="#02838A" style={styles.busIcon} />
+                    <MaterialCommunityIcons name="bus" size={16} color={colors.green} style={styles.busIcon} />
                     <View style={styles.lineDashed} />
                     <View style={styles.dotOutline} />
                 </View>
@@ -113,7 +113,7 @@ function getOrderStatusDisplay(status?: string | null) {
         label: "Confirmé",
         backgroundColor: "#E6F5F3",
         borderColor: "#B9E6DF",
-        color: "#02838A",
+        color: colors.green,
     };
 }
 
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
         width: 10,
         height: 10,
         borderRadius: 5,
-        backgroundColor: '#02838A',
+        backgroundColor: colors.green,
     },
     dotOutline: {
         width: 10,
@@ -245,6 +245,6 @@ const styles = StyleSheet.create({
         marginLeft: 'auto',
         fontSize: 16,
         fontFamily: 'TTNormsPro-Bold',
-        color: '#02838A',
+        color: colors.green,
     },
 });

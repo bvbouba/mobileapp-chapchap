@@ -50,7 +50,7 @@ const OrderDetailsPage = () => {
 
             <View style={[styles.topHeader, { paddingTop: insets.top + 12 }]}>
                 <Pressable onPress={() => router.back()} style={styles.backButton}>
-                    <MaterialCommunityIcons name="arrow-left" size={24} color="#02838A" />
+                    <MaterialCommunityIcons name="arrow-left" size={24} color={colors.green} />
                 </Pressable>
                 <View style={styles.headerTextBlock}>
                     <Text style={styles.headerTitle}>Voyage #{orderCache.number}</Text>
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     },
     companyName: { fontSize: 14, fontFamily: 'TTNormsPro-Bold', color: '#000000', textTransform: 'uppercase', flex: 1, paddingRight: 10 },
     dateBadge: { backgroundColor: '#E6F5F3', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
-    dateText: { fontSize: 12, color: '#02838A', fontFamily: 'TTNormsPro-Bold' },
+    dateText: { fontSize: 12, color: colors.green, fontFamily: 'TTNormsPro-Bold' },
 
     // Itinéraire Visuel
     tripRow: { flexDirection: 'row', height: 160 },
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     durationLine: { width: 1, flex: 1, backgroundColor: '#D7D8DB', marginRight: 10, marginVertical: 4 },
     
     indicatorCol: { alignItems: 'center', width: 40, marginHorizontal: 10 },
-    dotFilled: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#02838A' },
+    dotFilled: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.green },
     dotOutline: { width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: '#EB1700' },
     lineDashed: { width: 2, flex: 1, backgroundColor: '#D7D8DB', borderRadius: 1 },
 
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     sectionTitle: { fontSize: 15, fontFamily: 'TTNormsPro-Bold', color: '#606060', marginBottom: 15 },
     passengerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
     avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#E6F5F3', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    avatarText: { fontSize: 14, fontFamily: 'TTNormsPro-Bold', color: '#02838A' },
+    avatarText: { fontSize: 14, fontFamily: 'TTNormsPro-Bold', color: colors.green },
     passengerName: { fontSize: 15, fontFamily: 'TTNormsPro-Regular', color: '#000000' },
 
     // Prix
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     priceLabel: { color: '#606060', fontSize: 14, fontFamily: 'TTNormsPro-Regular' },
     priceValue: { fontFamily: 'TTNormsPro-Bold' },
     totalLabel: { fontSize: 16, fontFamily: 'TTNormsPro-Bold', color: '#000000' },
-    totalValue: { fontSize: 18, fontFamily: 'TTNormsPro-Bold', color: '#02838A' },
+    totalValue: { fontSize: 18, fontFamily: 'TTNormsPro-Bold', color: colors.green },
 
     // Bouton
     ticketButton: {

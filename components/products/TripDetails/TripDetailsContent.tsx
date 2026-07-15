@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Text } from '../../Themed';
+import { Text, colors } from '../../Themed';
 
 type AttributeValueType = {
     __typename?: "AttributeValue";
@@ -26,15 +26,15 @@ interface Props {
 const AmenityIcon = ({ slug }: { slug: string }) => {
     switch (slug) {
         case 'wi-fi':
-            return <Ionicons name="wifi" size={14} color="#02838A" />;
+            return <Ionicons name="wifi" size={14} color={colors.green} />;
         case 'climatisation':
-            return <Ionicons name="snow" size={14} color="#02838A" />;
+            return <Ionicons name="snow" size={14} color={colors.green} />;
         case 'toillettes':
-            return <MaterialCommunityIcons name="toilet" size={14} color="#02838A" />;
+            return <MaterialCommunityIcons name="toilet" size={14} color={colors.green} />;
         case 'television':
-            return <Ionicons name="tv-outline" size={14} color="#02838A" />;
+            return <Ionicons name="tv-outline" size={14} color={colors.green} />;
         default:
-            return <Ionicons name="checkmark-circle-outline" size={14} color="#02838A" />;
+            return <Ionicons name="checkmark-circle-outline" size={14} color={colors.green} />;
     }
 };
 

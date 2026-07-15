@@ -1,35 +1,43 @@
-import React from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import React, { useRef } from "react";
+import { StyleSheet, View } from "react-native";
+import PhoneInput from "react-native-phone-number-input";
 import { Text, colors } from "../Themed";
-
-const INPUT_BORDER = "#D7D8DB";
-const INPUT_BG = "#FFFFFF";
+import { usePhoneCountryPickerProps } from "../../utils/phoneInputCountryPicker";
 
 interface ContactSectionProps {
   phone: string;
   setPhone: (val: string) => void;
 }
 
-export const ContactSection = ({ phone, setPhone }: ContactSectionProps) => (
-  <View style={styles.section}>
-    <Text style={styles.sectionTitle}>Informations de contact</Text>
-    <View style={styles.inputContainer}>
-      <Text style={styles.label}>
-        Numéro de téléphone <Text style={{ color: colors.red }}>*</Text>
-      </Text>
-      <TextInput
-        placeholder="+225 ..."
-        placeholderTextColor="#606060"
-        style={styles.input}
-        keyboardType="phone-pad"
-        value={phone}
-        onChangeText={(val) => setPhone(val.startsWith("+") ? val : `+${val}`)}
-        selectionColor={colors.primary}
-        underlineColorAndroid="transparent"
-      />
+export const ContactSection = ({ phone, setPhone }: ContactSectionProps) => {
+  const phoneInput = useRef<PhoneInput>(null);
+  const phoneCountryPickerProps = usePhoneCountryPickerProps();
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Informations de contact</Text>
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>
+          Numéro de téléphone <Text style={{ color: colors.red }}>*</Text>
+        </Text>
+        <PhoneInput
+          ref={phoneInput}
+          defaultValue={phone}
+          defaultCode="CI"
+          layout="first"
+          onChangeFormattedText={(text) => setPhone(text)}
+          containerStyle={styles.phoneInputContainer}
+          textContainerStyle={styles.phoneTextContainer}
+          textInputStyle={styles.phoneTextInput}
+          codeTextStyle={styles.phoneCodeText}
+          filterProps={phoneCountryPickerProps.filterProps}
+          countryPickerProps={phoneCountryPickerProps}
+          placeholder="Numéro de téléphone"
+        />
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   section: {
@@ -50,17 +58,24 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontFamily: "TTNormsPro-Regular",
   },
-  input: {
-    alignSelf: "stretch",
-    minHeight: 48,
+  phoneInputContainer: {
+    width: "100%",
+    height: 56,
+    backgroundColor: colors.grey100,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: INPUT_BORDER,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    borderColor: colors.grey300,
+    overflow: "hidden",
+  },
+  phoneTextContainer: { backgroundColor: "transparent", paddingVertical: 0 },
+  phoneTextInput: {
     fontSize: 16,
-    backgroundColor: INPUT_BG,
-    color: "#000000",
+    color: colors.text,
     fontFamily: "TTNormsPro-Regular",
+  },
+  phoneCodeText: {
+    fontSize: 16,
+    fontFamily: "TTNormsPro-Bold",
+    color: colors.text,
   },
 });

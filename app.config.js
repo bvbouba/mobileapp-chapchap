@@ -31,20 +31,20 @@ module.exports = {
     [
       "expo-splash-screen",
       {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#A6C65A",
         image: "./assets/images/splash-ios.png",
-        resizeMode: "cover",
+        resizeMode: "contain",
         enableFullScreenImage_legacy: true,
         ios: {
           image: "./assets/images/splash-ios.png",
-          backgroundColor: "#FFFFFF",
-          resizeMode: "cover",
+          backgroundColor: "#A6C65A",
+          resizeMode: "contain",
           enableFullScreenImage_legacy: true,
         },
         android: {
           image: "./assets/images/splash-ios.png",
-          backgroundColor: "#FFFFFF",
-          resizeMode: "cover",
+          backgroundColor: "#A6C65A",
+          resizeMode: "contain",
         },
       },
     ],
@@ -58,8 +58,8 @@ module.exports = {
   ],
   splash: {
     image: "./assets/images/splash-ios.png",
-    resizeMode: "cover",
-    backgroundColor: "#FFFFFF",
+    resizeMode: "contain",
+    backgroundColor: "#A6C65A",
   },
   assetBundlePatterns: ["**/*"],
   ios: {
@@ -70,7 +70,7 @@ module.exports = {
     package: "com.vaflaly.exposhop",
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
-      backgroundColor: "#FFFFFF",
+      backgroundColor: "#A6C65A",
     },
   },
   web: {

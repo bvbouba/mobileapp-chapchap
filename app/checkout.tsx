@@ -11,6 +11,7 @@ import { StripeProvider } from "@stripe/stripe-react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { isValidPhoneNumber } from "libphonenumber-js";
 import { PaymentModal } from "../components/checkout/PaymentModal";
 import { PaddedView, Text, View, colors } from "../components/Themed";
 import { Summary } from "../components/checkout/Summary";
@@ -82,7 +83,7 @@ const Checkout = () => {
       return;
     }
 
-    if (!phone || phone.length < 8) {
+    if (!phone || !isValidPhoneNumber(phone)) {
       Alert.alert("Contact", "Veuillez entrer un numéro de téléphone valide.");
       return;
     }
@@ -186,7 +187,7 @@ const Checkout = () => {
                   <Ionicons
                     name={termsOpen ? "chevron-up" : "chevron-down"}
                     size={18}
-                    color="#02838A"
+                    color={colors.green}
                   />
                 </TouchableOpacity>
 
@@ -276,7 +277,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 999,
   },
-  goBackText: { color: "#02838A", fontFamily: "TTNormsPro-Bold" },
+  goBackText: { color: colors.green, fontFamily: "TTNormsPro-Bold" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   termsHeaderText: {
-    color: "#02838A",
+    color: colors.green,
     fontFamily: "TTNormsPro-Bold",
     fontSize: 15,
   },

@@ -56,7 +56,7 @@ const OrdersList: FC = () => {
     const renderEmptyState = (type: TabType) => (
         <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
-                <MaterialCommunityIcons name="ticket-confirmation-outline" size={38} color="#02838A" />
+                <MaterialCommunityIcons name="ticket-confirmation-outline" size={38} color={colors.green} />
             </View>
             <Text style={styles.emptyTitle}>Aucun voyage</Text>
             <Text style={styles.emptySubtitle}>
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     },
     emptyTitle: { fontSize: 20, fontFamily: 'TTNormsPro-Bold', color: '#000000', marginBottom: 8 },
     emptySubtitle: { fontSize: 14, color: '#606060', fontFamily: 'TTNormsPro-Regular', textAlign: 'center', lineHeight: 20 },
-    guestHint: { fontSize: 13, color: '#02838A', fontFamily: 'TTNormsPro-Bold', textAlign: 'center', marginTop: 14, lineHeight: 19 },
+    guestHint: { fontSize: 13, color: colors.green, fontFamily: 'TTNormsPro-Bold', textAlign: 'center', marginTop: 14, lineHeight: 19 },
 });
 
 export default OrdersList;

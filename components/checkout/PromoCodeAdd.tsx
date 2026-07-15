@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { View, Text } from "../Themed";
+import { View, Text, colors } from "../Themed";
 import { useCheckoutAddPromoCodeMutation, LanguageCodeEnum } from '../../checkout/graphql';
 import { EllipsisLoader } from '../EllipsisLoader';
 
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
     },
     applyBtnText: {
-        color: "#02838A",
+        color: colors.green,
         fontSize: 14,
         fontFamily: "TTNormsPro-Bold",
     },

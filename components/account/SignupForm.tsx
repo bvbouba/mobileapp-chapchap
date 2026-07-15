@@ -22,6 +22,7 @@ import {
 import { useAuth } from "../../lib/providers/authProvider";
 import { getConfig } from "../../config";
 import { EllipsisLoader } from "../EllipsisLoader";
+import { usePhoneCountryPickerProps } from "../../utils/phoneInputCountryPicker";
 
 const appName = getConfig().appName;
 
@@ -36,6 +37,7 @@ export const SignupForm: React.FC<Props> = ({ onClose, onSwitchToLogin }) => {
   const [error, setError] = useState<string | null>(null);
   const { login } = useAuth();
   const insets = useSafeAreaInsets();
+  const phoneCountryPickerProps = usePhoneCountryPickerProps();
 
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -164,7 +166,8 @@ export const SignupForm: React.FC<Props> = ({ onClose, onSwitchToLogin }) => {
                 textContainerStyle={styles.phoneTextContainer}
                 textInputStyle={styles.phoneTextInput}
                 codeTextStyle={styles.phoneCodeText}
-                countryPickerProps={{ countryCodes: ["CI", "CA"], translation: "fra" }}
+                filterProps={phoneCountryPickerProps.filterProps}
+                countryPickerProps={phoneCountryPickerProps}
                 placeholder="Numéro de téléphone"
               />
               <Pressable

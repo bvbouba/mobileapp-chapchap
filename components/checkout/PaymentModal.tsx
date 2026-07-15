@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PaddedView, Text } from "../Themed";
+import { PaddedView, Text, colors } from "../Themed";
 import { paymentMethodToComponent } from "./payments/supportedPaymentApps";
 import { usePayments } from "./payments/usePayments";
 import { EllipsisLoader } from "../EllipsisLoader";
@@ -115,7 +115,7 @@ export const PaymentModal = ({
                                                                 : "card-outline"
                                                         }
                                                         size={22}
-                                                        color="#02838A"
+                                                        color={colors.green}
                                                     />
                                                 </View>
                                                 <Text style={styles.methodName}>
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFFFFF",
     },
     amountLabel: { fontSize: 12, color: "#606060", fontFamily: "TTNormsPro-Bold" },
-    amountValue: { fontSize: 26, color: "#02838A", fontFamily: "TTNormsPro-Bold", marginTop: 4 },
+    amountValue: { fontSize: 26, color: colors.green, fontFamily: "TTNormsPro-Bold", marginTop: 4 },
     paymentSection: {
         backgroundColor: "#FFFFFF",
         paddingVertical: 16,

@@ -149,7 +149,7 @@ export const ProductElement = ({ variant }: Props) => {
             onPress={() => setShowDetails(true)}
           >
             <Text style={styles.detailsBtnText}>Détails</Text>
-            <Ionicons name="chevron-down" size={12} color="#02838A" />
+            <Ionicons name="chevron-down" size={12} color={colors.green} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.bookButton, isActionLoading && { opacity: 0.7 }]} 
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   },
   companyRow: { flexDirection: 'row', alignItems: 'center' },
   companyName: { fontSize: 12, color: '#606060', fontFamily: 'TTNormsPro-Regular' },
-  priceText: { fontSize: 18, color: '#02838A', fontFamily: 'TTNormsPro-Bold' },
+  priceText: { fontSize: 18, color: colors.green, fontFamily: 'TTNormsPro-Bold' },
 
   tripBody: {
     flexDirection: 'row',
@@ -283,5 +283,5 @@ const styles = StyleSheet.create({
     marginLeft: -5,
   },
   detailsBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  detailsBtnText: { color: '#02838A', fontSize: 12, fontFamily: 'TTNormsPro-Bold' },
+  detailsBtnText: { color: colors.green, fontSize: 12, fontFamily: 'TTNormsPro-Bold' },
 });

@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Text } from '../Themed';
+import { Text, colors } from '../Themed';
 
 interface DateProps {
   visible: boolean;
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   },
   dayCellToday: {
     borderWidth: 1,
-    borderColor: "#02838A",
+    borderColor: colors.green,
   },
   dayText: {
     color: "#000000",
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     fontFamily: "TTNormsPro-Bold",
   },
   dayTextToday: {
-    color: "#02838A",
+    color: colors.green,
   },
   modalFooter: { 
     paddingHorizontal: 20,

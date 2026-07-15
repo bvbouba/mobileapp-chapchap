@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { StyleSheet, View, Pressable, Modal, StatusBar } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View, Pressable, StatusBar, BackHandler } from "react-native";
+import { Portal } from "react-native-paper";
 import { Text, colors } from "../Themed";
 import { LoginForm } from "./LoginForm";
 import { SignupForm } from "./SignupForm";
@@ -14,13 +14,19 @@ export const LoginPrompt = () => {
     setModalVisible(true);
   };
 
+  // Android back closes auth overlay (Portal is not a native Modal).
+  useEffect(() => {
+    if (!modalVisible) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      setModalVisible(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, [modalVisible]);
+
   return (
     <View style={styles.outer}>
       <View style={styles.card}>
-        {/* <View style={styles.iconCircle}>
-          <MaterialCommunityIcons name="account-lock-outline" size={32} color={colors.blue} />
-        </View>
-        <Text style={styles.title}>Connexion recommandée</Text> */}
         <Text style={styles.subtitle}>
           Connectez-vous ou créez un compte pour retrouver vos billets sur tous vos appareils.
         </Text>
@@ -40,26 +46,28 @@ export const LoginPrompt = () => {
         </View>
       </View>
 
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        statusBarTranslucent
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <StatusBar barStyle="dark-content" />
-        {mode === "login" ? (
-          <LoginForm
-            onClose={() => setModalVisible(false)}
-            onSwitchToSignup={() => setMode("signup")}
-          />
-        ) : (
-          <SignupForm
-            onClose={() => setModalVisible(false)}
-            onSwitchToLogin={() => setMode("login")}
-          />
-        )}
-      </Modal>
+      {/*
+        Portal (not nested Modal): country picker Modal can cover the full Android screen.
+        Nested RN Modals do not reliably go fullscreen on Android.
+      */}
+      <Portal>
+        {modalVisible ? (
+          <View style={styles.authOverlay} accessibilityViewIsModal>
+            <StatusBar barStyle="dark-content" />
+            {mode === "login" ? (
+              <LoginForm
+                onClose={() => setModalVisible(false)}
+                onSwitchToSignup={() => setMode("signup")}
+              />
+            ) : (
+              <SignupForm
+                onClose={() => setModalVisible(false)}
+                onSwitchToLogin={() => setMode("login")}
+              />
+            )}
+          </View>
+        ) : null}
+      </Portal>
     </View>
   );
 };
@@ -68,6 +76,12 @@ const styles = StyleSheet.create({
   outer: {
     width: "100%",
     paddingVertical: 8,
+  },
+  authOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.background,
+    zIndex: 1000,
+    elevation: 1000,
   },
   card: {
     backgroundColor: colors.background,
@@ -81,22 +95,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
-  },
-  iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#E6F5F3",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-  },
-  title: {
-    fontSize: 18,
-    fontFamily: "TTNormsPro-Bold",
-    color: colors.text,
-    textAlign: "center",
-    marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,

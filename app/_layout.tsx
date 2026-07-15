@@ -9,6 +9,7 @@ import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
 import { useColorScheme, LogBox } from "react-native";
+import { Provider as PaperProvider } from "react-native-paper";
 import { colors } from "../components/Themed";
 import SearchHeader from "../components/layout/SearchHeader";
 import { CartProvider } from "../context/useCartContext";
@@ -84,6 +85,7 @@ function RootLayoutNav() {
           <CartProvider>
             <OrderProvider>
               <PaymentProvider>
+                <PaperProvider>
                 <ThemeProvider
                   value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
                 >
@@ -127,6 +129,7 @@ function RootLayoutNav() {
                     <Stack.Screen name="modal" options={{ presentation: "modal" }} />
                   </Stack>
                 </ThemeProvider>
+                </PaperProvider>
               </PaymentProvider>
             </OrderProvider>
           </CartProvider>

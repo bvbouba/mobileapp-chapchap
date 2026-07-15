@@ -17,6 +17,7 @@ import { useAuth } from "../../lib/providers/authProvider";
 import PhoneInput from "react-native-phone-number-input";
 import { getConfig } from "../../config";
 import { EllipsisLoader } from "../EllipsisLoader";
+import { usePhoneCountryPickerProps } from "../../utils/phoneInputCountryPicker";
 
 const appName = getConfig().appName;
 
@@ -32,6 +33,7 @@ export const LoginForm: React.FC<Props> = ({ onClose, onSwitchToSignup }) => {
   const phoneInput = useRef<PhoneInput>(null);
   const { login, error: authError, loading: authLoading } = useAuth();
   const insets = useSafeAreaInsets();
+  const phoneCountryPickerProps = usePhoneCountryPickerProps();
 
   const handleLogin = async () => {
     if (!isValidPhoneNumber(phoneNumber)) {
@@ -98,7 +100,8 @@ export const LoginForm: React.FC<Props> = ({ onClose, onSwitchToSignup }) => {
             textContainerStyle={styles.phoneTextContainer}
             textInputStyle={styles.phoneTextInput}
             codeTextStyle={styles.phoneCodeText}
-            countryPickerProps={{ countryCodes: ["CI", "CA"], translation: "fra" }}
+            filterProps={phoneCountryPickerProps.filterProps}
+            countryPickerProps={phoneCountryPickerProps}
             placeholder="Numéro de téléphone"
           />
 

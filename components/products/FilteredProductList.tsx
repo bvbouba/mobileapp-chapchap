@@ -168,7 +168,7 @@ export const FilteredProductList = ({
   );
 };
 
-const SECONDARY = "#02838A";
+const SECONDARY = "#A6C65A";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

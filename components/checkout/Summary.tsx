@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Alert, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, Divider, PaddedView } from "../Themed";
+import { View, Text, Divider, PaddedView, colors } from "../Themed";
 import { getTripInformation } from "../../utils/attribute";
 import { EllipsisLoader } from "../EllipsisLoader";
 
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   passengerSub: { fontSize: 12, color: "#606060", fontFamily: "TTNormsPro-Regular" },
   totalValue: {
     fontSize: 20,
-    color: "#02838A",
+    color: colors.green,
     fontFamily: "TTNormsPro-Bold",
   },
 });
