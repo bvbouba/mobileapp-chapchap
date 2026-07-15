@@ -1,11 +1,10 @@
 import React from 'react';
 import { Image, ImageBackground, Platform, StyleSheet, View } from 'react-native';
-import { Text } from '../Themed';
 
 /** Logo brand green (#A6C65A). iOS overlays read stronger — tune per platform. */
 const OVERLAY_GREEN_OPACITY = Platform.select({
-  ios: 0.85,
-  android: 0.85,
+  ios: 0,
+  android: 0,
   default: 0.55,
 }) as number;
 
@@ -21,15 +20,14 @@ const HeroHeader = () => {
       >
         <View style={[styles.overlaySoft, { backgroundColor: OVERLAY_GREEN }]} />
 
-        <View style={styles.logoRow}>
+       <View style={styles.logoRow}>
           <Image
             source={require('../../assets/images/logo/5.png')}
             style={styles.logo}
             resizeMode="contain"
             accessibilityLabel="ChapTicket"
           />
-          <Text style={styles.tagline}>Voyagez simple, voyagez vite</Text>
-        </View>
+        </View> 
       </ImageBackground>
     </View>
   );
@@ -45,8 +43,10 @@ const styles = StyleSheet.create({
   },
   heroBg: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    borderColor: 'red',
+    borderWidth: 1,
   },
   heroImage: {
     resizeMode: 'cover',
@@ -57,20 +57,13 @@ const styles = StyleSheet.create({
   logoRow: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingTop: 40,
     paddingHorizontal: 30,
     zIndex: 1,
   },
   logo: {
     width: 220,
     height: 80,
-  },
-  tagline: {
-    marginTop: 10,
-    color: '#FFFFFF',
-    fontSize: 20,
-    letterSpacing: 0.2,
-    textAlign: 'center',
-    fontFamily: 'TTNormsPro-Regular',
   },
 });
 

@@ -17,10 +17,10 @@ export const LoginPrompt = () => {
   return (
     <View style={styles.outer}>
       <View style={styles.card}>
-        <View style={styles.iconCircle}>
+        {/* <View style={styles.iconCircle}>
           <MaterialCommunityIcons name="account-lock-outline" size={32} color={colors.blue} />
         </View>
-        <Text style={styles.title}>Connexion recommandée</Text>
+        <Text style={styles.title}>Connexion recommandée</Text> */}
         <Text style={styles.subtitle}>
           Connectez-vous ou créez un compte pour retrouver vos billets sur tous vos appareils.
         </Text>

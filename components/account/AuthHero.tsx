@@ -10,13 +10,13 @@ interface Props {
 export const AuthHero = ({ onOpenAuth }: Props) => (
   <View style={styles.wrap}>
     <View style={styles.card}>
-      <View style={styles.iconCircle}>
+      {/* <View style={styles.iconCircle}>
         <MaterialCommunityIcons name="account-circle-outline" size={36} color={colors.blue} />
       </View>
-      <Text style={styles.title}>Bienvenue sur ChapChap</Text>
+      <Text style={styles.title}>Bienvenue sur ChapTicket</Text>
       <Text style={styles.subtitle}>
         Connectez-vous pour synchroniser vos voyages, vos billets et vos informations de paiement.
-      </Text>
+      </Text> */}
       <Pressable
         style={({ pressed }) => [styles.primaryBtn, pressed && styles.primaryBtnPressed]}
         onPress={() => onOpenAuth("login")}

@@ -38,7 +38,7 @@ export const OrderProvider: FC<PropsWithChildren> = ({ children }) => {
     const loading = getOrderByIdStatus.loading
     const loaded = getOrderByIdStatus.called
     const error = getOrderByIdStatus.error
-
+    
     const loadOrder = async () => {
         const res = await getOrderById({
             variables: {

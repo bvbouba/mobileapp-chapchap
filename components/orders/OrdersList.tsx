@@ -22,7 +22,6 @@ const OrdersList: FC = () => {
     const [activeTab, setActiveTab] = useState<TabType>('upcoming');
     const scrollRef = useRef<FlatList>(null);
     const now = new Date();
-
     const getTravelDate = (order: OrderFragment): Date => {
         const ticketLine = order.lines.find(
             (line) => line.variant?.product?.slug !== PLATFORM_FEE_PRODUCT_SLUG
@@ -63,9 +62,9 @@ const OrdersList: FC = () => {
             <Text style={styles.emptySubtitle}>
                 {type === 'upcoming' ? "Vous n'avez pas de voyages prévus." : "Votre historique de voyage est vide."}
             </Text>
-            {!authenticated && (
+            {/* {!authenticated && (
                 <Text style={styles.guestHint}>Connectez-vous pour synchroniser vos voyages sur tous vos appareils.</Text>
-            )}
+            )} */}
         </View>
     );
 
@@ -79,11 +78,6 @@ const OrdersList: FC = () => {
                 </Text>
             </View>
 
-            {!authenticated && orders.length === 0 ? (
-                <View style={styles.loginPromptWrapper}>
-                    <LoginPrompt />
-                </View>
-            ) : null}
 
             <View style={styles.tabsWrapper}>
                 <Pressable onPress={() => handleTabPress('upcoming')} style={[styles.tabButton, activeTab === 'upcoming' && styles.activeTabButton]}>
@@ -111,8 +105,18 @@ const OrdersList: FC = () => {
                             data={item}
                             keyExtractor={(order) => order.id}
                             renderItem={({ item: order }) => <OrderListItem order={order} />}
-                            contentContainerStyle={styles.listContent}
+                            contentContainerStyle={[
+                                styles.listContent,
+                                item.length === 0 && styles.listContentEmpty,
+                            ]}
                             ListEmptyComponent={() => renderEmptyState(index === 0 ? 'upcoming' : 'past')}
+                            ListFooterComponent={
+                                !authenticated ? (
+                                    <View style={styles.loginPromptWrapper}>
+                                        <LoginPrompt />
+                                    </View>
+                                ) : null
+                            }
                         />
                     </View>
                 )}
@@ -144,6 +148,7 @@ const styles = StyleSheet.create({
     },
     loginPromptWrapper: {
         marginHorizontal: 16,
+        marginTop: 8,
         marginBottom: 12,
         overflow: "hidden",
         borderRadius: 16,
@@ -168,7 +173,8 @@ const styles = StyleSheet.create({
     tabText: { fontSize: 13, fontFamily: 'TTNormsPro-Bold', textTransform: 'uppercase' },
     activeTabText: { color: "#FFFFFF" },
     inactiveTabText: { color: '#606060' },
-    listContent: { paddingBottom: 40 },
+    listContent: { paddingBottom: 40, flexGrow: 1 },
+    listContentEmpty: { flexGrow: 1 },
     emptyContainer: {
         marginHorizontal: 16,
         minHeight: 320,
