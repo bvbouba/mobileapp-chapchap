@@ -22,6 +22,11 @@ fragment OrderLineFragment on OrderLine {
 	quantity
 	variant {
 		name
+		product {
+			id
+			slug
+			name
+		}
 		attributes(variantSelection: ALL) {
 			attribute {
 					name

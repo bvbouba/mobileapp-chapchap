@@ -15,6 +15,17 @@ export const getAtrrValueID = (attrs: SelectedAttributeFragment[], slug: string)
 	return found?.values?.[0]?.id ?? undefined;
 };
 
+/**
+ * Channel slug of the operator selling this trip = slug of the "bus-operator"
+ * attribute value on the variant. Used as the checkout/order channel.
+ */
+export const getOperatorChannelSlug = (
+	attrs: Array<{ attribute?: { slug?: string | null } | null; values?: Array<{ slug?: string | null } | null> | null } | null | undefined>
+): string | undefined => {
+	const found = attrs?.find((attr) => attr?.attribute?.slug === "bus-operator");
+	return found?.values?.[0]?.slug ?? undefined;
+};
+
 // Parse duration string into total minutes
 export const parseDurationToMinutes = (raw?: string): number => {
 	if (!raw) return 0;

@@ -15,6 +15,10 @@ fragment SelectedAttribute on SelectedAttribute {
 fragment Checkout on Checkout {
 	id
 	email
+	channel {
+		id
+		slug
+	}
 	lines {
 		id
 		quantity

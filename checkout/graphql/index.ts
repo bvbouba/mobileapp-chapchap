@@ -12918,6 +12918,18 @@ export type Mutation = {
    */
   staffNotificationRecipientUpdate?: Maybe<StaffNotificationRecipientUpdate>;
   /**
+   * Registers an Expo push token for the authenticated staff user.
+   *
+   * Requires one of the following permissions: MANAGE_ORDERS.
+   */
+  staffPushTokenRegister?: Maybe<StaffPushTokenRegister>;
+  /**
+   * Unregisters an Expo push token for the authenticated staff user.
+   *
+   * Requires one of the following permissions: MANAGE_ORDERS.
+   */
+  staffPushTokenUnregister?: Maybe<StaffPushTokenUnregister>;
+  /**
    * Updates an existing staff user. Apps are not allowed to perform this mutation.
    *
    * Requires one of the following permissions: MANAGE_STAFF.
@@ -14880,6 +14892,17 @@ export type MutationStaffNotificationRecipientDeleteArgs = {
 export type MutationStaffNotificationRecipientUpdateArgs = {
   id: Scalars['ID'];
   input: StaffNotificationRecipientInput;
+};
+
+
+export type MutationStaffPushTokenRegisterArgs = {
+  platform?: InputMaybe<Scalars['String']>;
+  token: Scalars['String'];
+};
+
+
+export type MutationStaffPushTokenUnregisterArgs = {
+  token: Scalars['String'];
 };
 
 
@@ -26873,6 +26896,36 @@ export type StaffNotificationRecipientUpdate = {
   staffNotificationRecipient?: Maybe<StaffNotificationRecipient>;
 };
 
+/**
+ * Registers an Expo push token for the authenticated staff user.
+ *
+ * Requires one of the following permissions: MANAGE_ORDERS.
+ */
+export type StaffPushTokenRegister = {
+  __typename?: 'StaffPushTokenRegister';
+  /** @deprecated Use `errors` field instead. */
+  accountErrors: Array<AccountError>;
+  errors: Array<AccountError>;
+  /** Whether the token is active. */
+  registered?: Maybe<Scalars['Boolean']>;
+  /** Registered Expo push token. */
+  token?: Maybe<Scalars['String']>;
+};
+
+/**
+ * Unregisters an Expo push token for the authenticated staff user.
+ *
+ * Requires one of the following permissions: MANAGE_ORDERS.
+ */
+export type StaffPushTokenUnregister = {
+  __typename?: 'StaffPushTokenUnregister';
+  /** @deprecated Use `errors` field instead. */
+  accountErrors: Array<AccountError>;
+  errors: Array<AccountError>;
+  /** Whether the token was deactivated. */
+  removed?: Maybe<Scalars['Boolean']>;
+};
+
 /** Event sent when setting a new password for staff is requested. */
 export type StaffSetPasswordRequested = Event & {
   __typename?: 'StaffSetPasswordRequested';
@@ -31829,11 +31882,11 @@ export type SelectedAttributeFragment = { __typename?: 'SelectedAttribute', attr
 
 export type MoneyFragment = { __typename?: 'Money', currency: string, amount: number };
 
-export type OrderLineFragment = { __typename?: 'OrderLine', id: string, quantity: number, productName: string, variantName: string, variant?: { __typename?: 'ProductVariant', name: string, attributes: Array<{ __typename?: 'SelectedAttribute', attribute: { __typename?: 'Attribute', name?: string | null, slug?: string | null, inputType?: AttributeInputTypeEnum | null }, values: Array<{ __typename?: 'AttributeValue', name?: string | null, dateTime?: string | null, boolean?: boolean | null, translation?: { __typename?: 'AttributeValueTranslation', name: string } | null }> }> } | null, totalPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, undiscountedUnitPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, unitPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, thumbnail?: { __typename?: 'Image', alt?: string | null, url: string } | null };
+export type OrderLineFragment = { __typename?: 'OrderLine', id: string, quantity: number, productName: string, variantName: string, variant?: { __typename?: 'ProductVariant', name: string, product: { __typename?: 'Product', id: string, slug: string, name: string }, attributes: Array<{ __typename?: 'SelectedAttribute', attribute: { __typename?: 'Attribute', name?: string | null, slug?: string | null, inputType?: AttributeInputTypeEnum | null }, values: Array<{ __typename?: 'AttributeValue', name?: string | null, dateTime?: string | null, boolean?: boolean | null, translation?: { __typename?: 'AttributeValueTranslation', name: string } | null }> }> } | null, totalPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, undiscountedUnitPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, unitPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, thumbnail?: { __typename?: 'Image', alt?: string | null, url: string } | null };
 
 export type ShippingFragment = { __typename?: 'ShippingMethod', name: string, minimumDeliveryDays?: number | null, maximumDeliveryDays?: number | null };
 
-export type OrderFragment = { __typename?: 'Order', id: string, number: string, userEmail?: string | null, isPaid: boolean, chargeStatus: OrderChargeStatusEnum, authorizeStatus: OrderAuthorizeStatusEnum, discounts: Array<{ __typename?: 'OrderDiscount', type: OrderDiscountType, name?: string | null, amount: { __typename?: 'Money', currency: string, amount: number } }>, shippingAddress?: { __typename?: 'Address', id: string, city: string, phone?: string | null, postalCode: string, companyName: string, cityArea: string, streetAddress1: string, streetAddress2: string, countryArea: string, firstName: string, lastName: string, country: { __typename?: 'CountryDisplay', country: string, code: string } } | null, billingAddress?: { __typename?: 'Address', id: string, city: string, phone?: string | null, postalCode: string, companyName: string, cityArea: string, streetAddress1: string, streetAddress2: string, countryArea: string, firstName: string, lastName: string, country: { __typename?: 'CountryDisplay', country: string, code: string } } | null, deliveryMethod?: { __typename?: 'ShippingMethod', name: string, minimumDeliveryDays?: number | null, maximumDeliveryDays?: number | null } | { __typename?: 'Warehouse' } | null, total: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number }, tax: { __typename?: 'Money', currency: string, amount: number } }, voucher?: { __typename?: 'Voucher', code?: string | null } | null, shippingPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, subtotal: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, lines: Array<{ __typename?: 'OrderLine', id: string, quantity: number, productName: string, variantName: string, variant?: { __typename?: 'ProductVariant', name: string, attributes: Array<{ __typename?: 'SelectedAttribute', attribute: { __typename?: 'Attribute', name?: string | null, slug?: string | null, inputType?: AttributeInputTypeEnum | null }, values: Array<{ __typename?: 'AttributeValue', name?: string | null, dateTime?: string | null, boolean?: boolean | null, translation?: { __typename?: 'AttributeValueTranslation', name: string } | null }> }> } | null, totalPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, undiscountedUnitPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, unitPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, thumbnail?: { __typename?: 'Image', alt?: string | null, url: string } | null }>, totalBalance: { __typename?: 'Money', currency: string, amount: number }, totalCaptured: { __typename?: 'Money', currency: string, amount: number } };
+export type OrderFragment = { __typename?: 'Order', id: string, number: string, userEmail?: string | null, isPaid: boolean, chargeStatus: OrderChargeStatusEnum, authorizeStatus: OrderAuthorizeStatusEnum, discounts: Array<{ __typename?: 'OrderDiscount', type: OrderDiscountType, name?: string | null, amount: { __typename?: 'Money', currency: string, amount: number } }>, shippingAddress?: { __typename?: 'Address', id: string, city: string, phone?: string | null, postalCode: string, companyName: string, cityArea: string, streetAddress1: string, streetAddress2: string, countryArea: string, firstName: string, lastName: string, country: { __typename?: 'CountryDisplay', country: string, code: string } } | null, billingAddress?: { __typename?: 'Address', id: string, city: string, phone?: string | null, postalCode: string, companyName: string, cityArea: string, streetAddress1: string, streetAddress2: string, countryArea: string, firstName: string, lastName: string, country: { __typename?: 'CountryDisplay', country: string, code: string } } | null, deliveryMethod?: { __typename?: 'ShippingMethod', name: string, minimumDeliveryDays?: number | null, maximumDeliveryDays?: number | null } | { __typename?: 'Warehouse' } | null, total: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number }, tax: { __typename?: 'Money', currency: string, amount: number } }, voucher?: { __typename?: 'Voucher', code?: string | null } | null, shippingPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, subtotal: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, lines: Array<{ __typename?: 'OrderLine', id: string, quantity: number, productName: string, variantName: string, variant?: { __typename?: 'ProductVariant', name: string, product: { __typename?: 'Product', id: string, slug: string, name: string }, attributes: Array<{ __typename?: 'SelectedAttribute', attribute: { __typename?: 'Attribute', name?: string | null, slug?: string | null, inputType?: AttributeInputTypeEnum | null }, values: Array<{ __typename?: 'AttributeValue', name?: string | null, dateTime?: string | null, boolean?: boolean | null, translation?: { __typename?: 'AttributeValueTranslation', name: string } | null }> }> } | null, totalPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, undiscountedUnitPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, unitPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, thumbnail?: { __typename?: 'Image', alt?: string | null, url: string } | null }>, totalBalance: { __typename?: 'Money', currency: string, amount: number }, totalCaptured: { __typename?: 'Money', currency: string, amount: number } };
 
 export type OrderQueryVariables = Exact<{
   id: Scalars['ID'];
@@ -31841,7 +31894,7 @@ export type OrderQueryVariables = Exact<{
 }>;
 
 
-export type OrderQuery = { __typename?: 'Query', order?: { __typename?: 'Order', id: string, number: string, userEmail?: string | null, isPaid: boolean, chargeStatus: OrderChargeStatusEnum, authorizeStatus: OrderAuthorizeStatusEnum, discounts: Array<{ __typename?: 'OrderDiscount', type: OrderDiscountType, name?: string | null, amount: { __typename?: 'Money', currency: string, amount: number } }>, shippingAddress?: { __typename?: 'Address', id: string, city: string, phone?: string | null, postalCode: string, companyName: string, cityArea: string, streetAddress1: string, streetAddress2: string, countryArea: string, firstName: string, lastName: string, country: { __typename?: 'CountryDisplay', country: string, code: string } } | null, billingAddress?: { __typename?: 'Address', id: string, city: string, phone?: string | null, postalCode: string, companyName: string, cityArea: string, streetAddress1: string, streetAddress2: string, countryArea: string, firstName: string, lastName: string, country: { __typename?: 'CountryDisplay', country: string, code: string } } | null, deliveryMethod?: { __typename?: 'ShippingMethod', name: string, minimumDeliveryDays?: number | null, maximumDeliveryDays?: number | null } | { __typename?: 'Warehouse' } | null, total: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number }, tax: { __typename?: 'Money', currency: string, amount: number } }, voucher?: { __typename?: 'Voucher', code?: string | null } | null, shippingPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, subtotal: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, lines: Array<{ __typename?: 'OrderLine', id: string, quantity: number, productName: string, variantName: string, variant?: { __typename?: 'ProductVariant', name: string, attributes: Array<{ __typename?: 'SelectedAttribute', attribute: { __typename?: 'Attribute', name?: string | null, slug?: string | null, inputType?: AttributeInputTypeEnum | null }, values: Array<{ __typename?: 'AttributeValue', name?: string | null, dateTime?: string | null, boolean?: boolean | null, translation?: { __typename?: 'AttributeValueTranslation', name: string } | null }> }> } | null, totalPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, undiscountedUnitPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, unitPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, thumbnail?: { __typename?: 'Image', alt?: string | null, url: string } | null }>, totalBalance: { __typename?: 'Money', currency: string, amount: number }, totalCaptured: { __typename?: 'Money', currency: string, amount: number } } | null };
+export type OrderQuery = { __typename?: 'Query', order?: { __typename?: 'Order', id: string, number: string, userEmail?: string | null, isPaid: boolean, chargeStatus: OrderChargeStatusEnum, authorizeStatus: OrderAuthorizeStatusEnum, discounts: Array<{ __typename?: 'OrderDiscount', type: OrderDiscountType, name?: string | null, amount: { __typename?: 'Money', currency: string, amount: number } }>, shippingAddress?: { __typename?: 'Address', id: string, city: string, phone?: string | null, postalCode: string, companyName: string, cityArea: string, streetAddress1: string, streetAddress2: string, countryArea: string, firstName: string, lastName: string, country: { __typename?: 'CountryDisplay', country: string, code: string } } | null, billingAddress?: { __typename?: 'Address', id: string, city: string, phone?: string | null, postalCode: string, companyName: string, cityArea: string, streetAddress1: string, streetAddress2: string, countryArea: string, firstName: string, lastName: string, country: { __typename?: 'CountryDisplay', country: string, code: string } } | null, deliveryMethod?: { __typename?: 'ShippingMethod', name: string, minimumDeliveryDays?: number | null, maximumDeliveryDays?: number | null } | { __typename?: 'Warehouse' } | null, total: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number }, tax: { __typename?: 'Money', currency: string, amount: number } }, voucher?: { __typename?: 'Voucher', code?: string | null } | null, shippingPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, subtotal: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, lines: Array<{ __typename?: 'OrderLine', id: string, quantity: number, productName: string, variantName: string, variant?: { __typename?: 'ProductVariant', name: string, product: { __typename?: 'Product', id: string, slug: string, name: string }, attributes: Array<{ __typename?: 'SelectedAttribute', attribute: { __typename?: 'Attribute', name?: string | null, slug?: string | null, inputType?: AttributeInputTypeEnum | null }, values: Array<{ __typename?: 'AttributeValue', name?: string | null, dateTime?: string | null, boolean?: boolean | null, translation?: { __typename?: 'AttributeValueTranslation', name: string } | null }> }> } | null, totalPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, undiscountedUnitPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, unitPrice: { __typename?: 'TaxedMoney', gross: { __typename?: 'Money', currency: string, amount: number } }, thumbnail?: { __typename?: 'Image', alt?: string | null, url: string } | null }>, totalBalance: { __typename?: 'Money', currency: string, amount: number }, totalCaptured: { __typename?: 'Money', currency: string, amount: number } } | null };
 
 export type PaymentGatewaysInitializeMutationVariables = Exact<{
   checkoutId: Scalars['ID'];
@@ -32153,6 +32206,11 @@ export const OrderLineFragmentDoc = gql`
   quantity
   variant {
     name
+    product {
+      id
+      slug
+      name
+    }
     attributes(variantSelection: ALL) {
       attribute {
         name

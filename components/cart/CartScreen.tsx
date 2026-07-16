@@ -5,7 +5,6 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, Divider, PaddedView, Text, View } from "../Themed";
 import { useCartContext } from "../../context/useCartContext";
-import { getConfig } from "../../config";
 import { getTripInformation } from '../../utils/attribute';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { ensurePlatformFeeLineInCheckout } from "../../utils/ensurePlatformFeeInCheckout";
@@ -95,7 +94,8 @@ const CartScreen = () => {
       const feeResult = await ensurePlatformFeeLineInCheckout({
         checkoutId: cart.id,
         lines: cart.lines,
-        channel: getConfig().channel ?? "",
+        // The fee product must be fetched in the same channel as the checkout.
+        channel: cart.channel?.slug ?? "",
         fetchProductBySlug: (args) => fetchPlatformFeeProduct(args),
         checkoutLinesAdd: (args) => checkoutLinesAdd(args),
         refreshCart,

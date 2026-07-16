@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Text, colors } from '../Themed';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { ProductVariantListItemFragment } from '../../saleor/api.generated';
@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { GlobalLoadingOverlay } from '../GlobalLoadingOverlay';
 import { TripDetailsModal } from './TripDetails/TripDetailsModal';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+import { getOperatorChannelSlug } from '../../utils/attribute';
 import { EllipsisLoader } from '../EllipsisLoader';
 
 interface Props {
@@ -24,10 +25,18 @@ export const ProductElement = ({ variant }: Props) => {
   const handlePress = async () => {
     if (isActionLoading) return;
 
+    const operatorChannelSlug = getOperatorChannelSlug(attributes);
+    if (!operatorChannelSlug) {
+      Alert.alert(
+        "Erreur",
+        "Impossible d'identifier la compagnie de ce trajet. Veuillez réessayer plus tard."
+      );
+      return;
+    }
+
     setIsActionLoading(true); 
     try {
-      const res = await addItem(variant?.id);  
-      console.log( res)      
+      const res = await addItem(variant?.id, operatorChannelSlug);
       if (res) {
         router.push("/cart");
       }

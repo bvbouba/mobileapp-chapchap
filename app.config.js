@@ -32,17 +32,15 @@ module.exports = {
       "expo-splash-screen",
       {
         backgroundColor: "#A6C65A",
-        image: "./assets/images/splash-ios.png",
+        image: "./assets/images/splash.png",
         resizeMode: "contain",
-        enableFullScreenImage_legacy: true,
         ios: {
-          image: "./assets/images/splash-ios.png",
+          image: "./assets/images/splash.png",
           backgroundColor: "#A6C65A",
           resizeMode: "contain",
-          enableFullScreenImage_legacy: true,
         },
         android: {
-          image: "./assets/images/splash-ios.png",
+          image: "./assets/images/splash.png",
           backgroundColor: "#A6C65A",
           resizeMode: "contain",
         },
@@ -57,7 +55,7 @@ module.exports = {
     ],
   ],
   splash: {
-    image: "./assets/images/splash-ios.png",
+    image: "./assets/images/splash.png",
     resizeMode: "contain",
     backgroundColor: "#A6C65A",
   },

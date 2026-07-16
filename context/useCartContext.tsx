@@ -1,6 +1,5 @@
 import { createContext, FC, PropsWithChildren, useContext, useEffect, useState } from "react";
 import { Alert } from "react-native";
-import { getConfig } from "../config";
 import { 
     CheckoutFragment, 
     useCheckoutLinesUpdateMutation, 
@@ -19,7 +18,7 @@ interface CartContextModel {
     refreshCart: () => Promise<CheckoutFragment | undefined>;
     removeCart: () => Promise<void>;
     setCart: (cart: CheckoutFragment) => void;
-    addItem: (variantId: string) => Promise<CheckoutFragment | undefined>;
+    addItem: (variantId: string, channelSlug: string) => Promise<CheckoutFragment | undefined>;
     updateItemQuantity: (lineId: string, quantity: number) => Promise<void>;
 }
 
@@ -77,10 +76,10 @@ export const CartProvider: FC<PropsWithChildren> = ({ children }) => {
         }
     };
 
-    const createCartWithItem = async (variantId: string) => {
+    const createCartWithItem = async (variantId: string, channelSlug: string) => {
         const newCheckout = await createCheckout({
             variables: {
-                channel: getConfig().channel,
+                channel: channelSlug,
                 lines: [{ variantId, quantity: 1 }]
             }
         });
@@ -100,10 +99,22 @@ export const CartProvider: FC<PropsWithChildren> = ({ children }) => {
         return checkout;
     };
 
-    const addItem = async (variantId: string) => {
+    const addItem = async (variantId: string, channelSlug: string) => {
+        if (!channelSlug) {
+            Alert.alert("Erreur", "Impossible d'identifier la compagnie de ce trajet. Veuillez réessayer.");
+            return undefined;
+        }
         setLoading(true);
         try {
-            const currentCart = await checkCheckoutExists();
+            let currentCart = await checkCheckoutExists();
+
+            // A Saleor checkout is locked to one channel: if the new ticket
+            // belongs to another operator, drop the old cart and start fresh.
+            if (currentCart && currentCart.channel?.slug !== channelSlug) {
+                await removeCheckoutId();
+                setCart(undefined);
+                currentCart = undefined;
+            }
 
             if (currentCart) {
                 // 2. CLEAR EXISTING LINES
@@ -131,13 +142,13 @@ export const CartProvider: FC<PropsWithChildren> = ({ children }) => {
                 
                 if (errors.length > 0 || !checkout) {
                     await removeCheckoutId();
-                    return await createCartWithItem(variantId);
+                    return await createCartWithItem(variantId, channelSlug);
                 }
 
                 setCart(checkout);
                 return checkout;
             } else {
-                return await createCartWithItem(variantId);
+                return await createCartWithItem(variantId, channelSlug);
             }
         } catch (error) {
             console.error("Error adding item:", error);

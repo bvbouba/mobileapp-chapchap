@@ -1,7 +1,8 @@
 import React, { FC, useState } from "react";
 import { ProductFragment, ProductVariantFragment } from "../../saleor/api.generated";
 import { PaddedView, Text, View } from '../Themed';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Alert } from 'react-native';
+import { getOperatorChannelSlug } from "../../utils/attribute";
 import { useCartContext } from "../../context/useCartContext";
 import ProductImageCarousel from "./details/ProductImageCarousel";
 import parseDescription from "../../utils/parseDescription";
@@ -51,8 +52,18 @@ const ProductDetails: FC<Props> = ({ product }) => {
                 <Text style={styles.productPrice}>{price}</Text>
 
                 <Button mode="contained" onPress={async () => {
-                    await addItem(selectedVariant?.id)
-                    router.push("(tabs)/cart")
+                    const operatorChannelSlug = getOperatorChannelSlug(selectedVariant?.attributes ?? []);
+                    if (!operatorChannelSlug) {
+                        Alert.alert(
+                            "Erreur",
+                            "Impossible d'identifier la compagnie de ce trajet. Veuillez réessayer plus tard."
+                        );
+                        return;
+                    }
+                    const res = await addItem(selectedVariant?.id, operatorChannelSlug)
+                    if (res) {
+                        router.push("(tabs)/cart")
+                    }
                 }} disabled={loading} >{loading ? "Adding..." : "Add to cart"}</Button>
             </PaddedView>
         </ScrollView>

@@ -3,7 +3,7 @@ import { Alert, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { View, Text, Divider, PaddedView, colors } from "../Themed";
 import { getTripInformation } from "../../utils/attribute";
-import { EllipsisLoader } from "../EllipsisLoader";
+import { PLATFORM_FEE_PRODUCT_SLUG } from "../../utils/ensurePlatformFeeInCheckout";
 
 const LINK_GREY = "#D7D8DB";
 const DOT_GREY = "#B0B0B0";
@@ -27,9 +27,8 @@ export const Summary: React.FC<SummaryProps> = ({
   pricingReady = true,
 }) => {
   const [isOpen, setIsOpen] = useState(true);
-
-  const feeLine = lines?.find((line) => line?.variant?.product?.slug === "platform-fee");
-  const tripLines = lines?.filter((line) => line?.variant?.product?.slug !== "platform-fee");
+  const feeLine = lines?.find((line) => line?.variant?.product?.slug === PLATFORM_FEE_PRODUCT_SLUG);
+  const tripLines = lines?.filter((line) => line?.variant?.product?.slug !== PLATFORM_FEE_PRODUCT_SLUG);
   const line = tripLines?.[0];
   const {
     departureCity,

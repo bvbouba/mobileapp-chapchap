@@ -9,11 +9,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from "react-native";
 import { Button } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
+import PhoneInput from "react-native-phone-number-input";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isValidPhoneNumber } from "libphonenumber-js";
 import {
@@ -23,6 +23,7 @@ import {
 } from "../../../../checkout/graphql";
 import { useCheckout } from "../../../../context/useCheckout";
 import { useCheckoutComplete } from "../../../../checkout/hooks/useCheckoutComplete";
+import { usePhoneCountryPickerProps } from "../../../../utils/phoneInputCountryPicker";
 import { Text, colors } from "../../../Themed";
 import {
   CI_MOMO_PROVIDERS,
@@ -43,6 +44,7 @@ function resolveCheckoutEmail(checkout: {
 
 export const PaystackComponent = () => {
   const insets = useSafeAreaInsets();
+  const phoneCountryPickerProps = usePhoneCountryPickerProps();
   const { checkout, refetch } = useCheckout();
   const { onCheckoutComplete, completingCheckout } = useCheckoutComplete();
 
@@ -58,12 +60,7 @@ export const PaystackComponent = () => {
   const finishingRef = useRef(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scrollRef = useRef<ScrollView>(null);
-
-  useEffect(() => {
-    if (checkout?.billingAddress?.phone && !phone) {
-      setPhone(checkout.billingAddress.phone);
-    }
-  }, [checkout?.billingAddress?.phone, phone]);
+  const phoneInputRef = useRef<PhoneInput>(null);
 
   useEffect(() => {
     return () => {
@@ -175,10 +172,16 @@ export const PaystackComponent = () => {
       Alert.alert("Erreur", "Session de commande introuvable.");
       return;
     }
-    if (!phone || !isValidPhoneNumber(phone)) {
+
+    // `phone` comes from onChangeFormattedText and is already E.164 (+225...).
+    // Do NOT use getNumberAfterPossiblyEliminatingZero(): it strips the leading 0,
+    // which is a real digit in Ivorian 10-digit numbers.
+    const formattedPhone = phone.replace(/\s+/g, "");
+
+    if (!formattedPhone || !isValidPhoneNumber(formattedPhone)) {
       Alert.alert(
         "Téléphone",
-        "Entrez un numéro Mobile Money valide (ex. +22507…)."
+        "Entrez un numéro Mobile Money valide avec l'indicatif du pays."
       );
       return;
     }
@@ -195,7 +198,7 @@ export const PaystackComponent = () => {
             data: {
               email: resolveCheckoutEmail(checkout),
               checkoutId: checkout.id,
-              phone,
+              phone: formattedPhone,
               provider,
             },
           },
@@ -360,16 +363,23 @@ export const PaystackComponent = () => {
         </View>
 
         <Text style={styles.fieldLabel}>Numéro Mobile Money</Text>
-        <TextInput
-          style={styles.phoneInput}
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          placeholder="+2250700000000"
-          placeholderTextColor="#9CA3AF"
-          autoCorrect={false}
-          onFocus={() => {
-            setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+        <PhoneInput
+          ref={phoneInputRef}
+          defaultValue={phone}
+          defaultCode="CI"
+          layout="first"
+          onChangeFormattedText={setPhone}
+          containerStyle={styles.phoneInputContainer}
+          textContainerStyle={styles.phoneTextContainer}
+          textInputStyle={styles.phoneTextInput}
+          codeTextStyle={styles.phoneCodeText}
+          filterProps={phoneCountryPickerProps.filterProps}
+          countryPickerProps={phoneCountryPickerProps}
+          placeholder="Numéro de téléphone"
+          textInputProps={{
+            onFocus: () => {
+              setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+            },
           }}
         />
 
@@ -450,17 +460,29 @@ const styles = StyleSheet.create({
   providerNameSelectedText: {
     color: "#000",
   },
-  phoneInput: {
-    height: 52,
+  phoneInputContainer: {
+    width: "100%",
+    height: 56,
+    backgroundColor: "#F8F8F8",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#D7D8DB",
-    backgroundColor: "#F8F8F8",
-    paddingHorizontal: 14,
+    overflow: "hidden",
+    marginBottom: 16,
+  },
+  phoneTextContainer: {
+    backgroundColor: "transparent",
+    paddingVertical: 0,
+  },
+  phoneTextInput: {
     fontSize: 16,
     color: "#000",
     fontFamily: "TTNormsPro-Regular",
-    marginBottom: 16,
+  },
+  phoneCodeText: {
+    fontSize: 16,
+    fontFamily: "TTNormsPro-Bold",
+    color: "#000",
   },
   button: {
     backgroundColor: colors.green,
