@@ -1,18 +1,33 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  Dimensions,
+  Modal,
+  Pressable,
+  StatusBar,
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import { generateShortCode } from '../../utils/generateShortCode';
 import { OrderFragment } from '../../saleor/api.generated';
 import { getTripInformation } from '../../utils/attribute';
 import { PLATFORM_FEE_PRODUCT_SLUG } from '../../utils/ensurePlatformFeeInCheckout';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { colors } from '../Themed';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const TICKET_PROOF_IMAGE_URL_KEY = "ticket_proof_image_url";
 type OrderMetadataItem = { key: string; value: string };
+type ZoomTarget = 'image' | 'qr' | null;
 
 export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
+  const insets = useSafeAreaInsets();
+  const [zoomTarget, setZoomTarget] = useState<ZoomTarget>(null);
+
   const ticketLines = order.lines.filter(
     (line) => line.variant?.product?.slug !== PLATFORM_FEE_PRODUCT_SLUG
   );
@@ -22,14 +37,14 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
   const { departureCity, arrivalCity, departureTimeStr, arrivalTimeStr, company, formattedDate } = getTripInformation({ attributes });
   const confirmationCode = generateShortCode(order.id);
   const orderMetadata = ((order as OrderFragment & { metadata?: OrderMetadataItem[] }).metadata ?? []);
-  const ticketImageUrl = orderMetadata.find((item) => item.key === TICKET_PROOF_IMAGE_URL_KEY)?.value;
+  const rawTicketImageUrl = orderMetadata.find((item) => item.key === TICKET_PROOF_IMAGE_URL_KEY)?.value;
+  // Saleor often stores http://127.0.0.1:8000/... which is unreachable on a real device.
+  const ticketImageUrl = resolveMediaUrl(rawTicketImageUrl);
 
-  // LOGIQUE DE PARSING POUR TOUS LES PASSAGERS
   const getPassengers = () => {
     if (!order.customerNote) return ["Passager"];
     
     try {
-      // Split par ";" pour avoir chaque bloc passager
       const passengerBlocks = order.customerNote.split(';').filter(p => p.trim() !== "");
       
       return passengerBlocks.map(block => {
@@ -45,10 +60,10 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
   };
 
   const allPassengers = getPassengers();
+  const qrSize = Math.min(width * 0.72, height * 0.55);
 
   return (
     <View style={styles.ticketContainer}>
-      {/* Partie Haute */}
       <View style={styles.topSection}>
         <Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
         <Text style={styles.companyName}>{company}</Text>
@@ -56,7 +71,6 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
 
       <View style={styles.dashedLine} />
 
-      {/* Partie Centrale : Trajet */}
       <View style={styles.bodySection}>
         <View style={styles.row}>
           <View>
@@ -72,7 +86,6 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
           </View>
         </View>
 
-        {/* Date et Nombre de places */}
         <View style={styles.infoGrid}>
           <View style={styles.infoItem}>
             <Text style={styles.label}>Date du voyage</Text>
@@ -84,7 +97,6 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
           </View>
         </View>
 
-        {/* Liste des Passagers */}
         <View style={styles.passengerListContainer}>
           <Text style={styles.label}>Passagers</Text>
           {allPassengers.map((name, index) => (
@@ -95,7 +107,6 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
           ))}
         </View>
 
-        {/* Détails du Prix */}
         <View style={styles.priceContainer}>
            <Text style={styles.label}>Paiement Confirmé</Text>
            <View style={styles.priceRow}>
@@ -107,12 +118,22 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
 
       <View style={styles.dashedLine} />
 
-      {/* Partie Basse : Photo du billet et QR optionnel */}
       <View style={styles.footerSection}>
         <Text style={styles.qrLabel}>Photo du billet physique</Text>
 
         {ticketImageUrl ? (
-          <Image source={{ uri: ticketImageUrl }} style={styles.ticketProofImage} resizeMode="contain" />
+          <Pressable
+            onPress={() => setZoomTarget('image')}
+            style={styles.ticketProofPressable}
+            accessibilityRole="button"
+            accessibilityLabel="Agrandir la photo du billet"
+          >
+            <Image source={{ uri: ticketImageUrl }} style={styles.ticketProofImage} resizeMode="contain" />
+            <View style={styles.zoomHint}>
+              <MaterialCommunityIcons name="magnify-plus-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.zoomHintText}>Appuyer pour agrandir</Text>
+            </View>
+          </Pressable>
         ) : (
           <View style={styles.ticketProofPlaceholder}>
             <MaterialCommunityIcons name="image-outline" size={32} color={colors.green} />
@@ -129,16 +150,64 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
 
         <View style={styles.optionalQrBlock}>
           <Text style={styles.optionalQrLabel}>Scan optionnel</Text>
-          <View style={styles.qrContainer}>
+          <Pressable
+            onPress={() => setZoomTarget('qr')}
+            style={styles.qrContainer}
+            accessibilityRole="button"
+            accessibilityLabel="Agrandir le code QR"
+          >
             <QRCode
               value={order.id}
               size={92}
               color="#111827"
               backgroundColor="white"
             />
-          </View>
+            <Text style={styles.qrTapHint}>Appuyer pour agrandir</Text>
+          </Pressable>
         </View>
       </View>
+
+      <Modal
+        visible={zoomTarget !== null}
+        animationType="fade"
+        transparent={false}
+        statusBarTranslucent
+        onRequestClose={() => setZoomTarget(null)}
+      >
+        <StatusBar barStyle="light-content" />
+        <View style={styles.zoomScreen}>
+          <Pressable
+            onPress={() => setZoomTarget(null)}
+            style={[styles.zoomCloseBtn, { top: insets.top + 12 }]}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Fermer"
+          >
+            <MaterialCommunityIcons name="close" size={28} color="#FFFFFF" />
+          </Pressable>
+
+          <Pressable style={styles.zoomBody} onPress={() => setZoomTarget(null)}>
+            {zoomTarget === 'image' && ticketImageUrl ? (
+              <Image
+                source={{ uri: ticketImageUrl }}
+                style={styles.zoomImage}
+                resizeMode="contain"
+              />
+            ) : null}
+            {zoomTarget === 'qr' ? (
+              <View style={styles.zoomQrWrap}>
+                <QRCode
+                  value={order.id}
+                  size={qrSize}
+                  color="#111827"
+                  backgroundColor="white"
+                />
+                <Text style={styles.zoomQrCaption}>Présentez ce code au contrôle</Text>
+              </View>
+            ) : null}
+          </Pressable>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -169,7 +238,6 @@ const styles = StyleSheet.create({
   city: { fontSize: 13, color: '#606060', fontFamily: 'TTNormsPro-Regular' },
   infoValue: { fontSize: 15, fontFamily: 'TTNormsPro-Bold', color: '#000000' },
   
-  // Styles pour la liste des passagers
   passengerListContainer: {
     marginBottom: 20,
     borderTopWidth: 1,
@@ -205,14 +273,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   qrLabel: { fontSize: 10, fontFamily: 'TTNormsPro-Bold', color: '#606060', textTransform: 'uppercase', marginBottom: 10 },
-  ticketProofImage: {
+  ticketProofPressable: {
     width: '100%',
-    height: 260,
+    marginBottom: 16,
     borderRadius: 16,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#D7D8DB',
     backgroundColor: '#F1F1F1',
-    marginBottom: 16,
+  },
+  ticketProofImage: {
+    width: '100%',
+    height: 260,
+  },
+  zoomHint: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  zoomHintText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontFamily: 'TTNormsPro-Bold',
   },
   ticketProofPlaceholder: {
     width: '100%',
@@ -241,6 +330,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#D7D8DB',
+    alignItems: 'center',
+  },
+  qrTapHint: {
+    marginTop: 8,
+    fontSize: 11,
+    color: '#606060',
+    fontFamily: 'TTNormsPro-Bold',
   },
   confirmationWrapper: {
     alignItems: 'center',
@@ -257,5 +353,43 @@ const styles = StyleSheet.create({
     fontFamily: 'TTNormsPro-Bold',
     textTransform: 'uppercase',
     marginBottom: 8,
+  },
+  zoomScreen: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  zoomCloseBtn: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 2,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zoomBody: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  zoomImage: {
+    width: width,
+    height: height * 0.85,
+  },
+  zoomQrWrap: {
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  zoomQrCaption: {
+    marginTop: 16,
+    fontSize: 14,
+    color: '#000000',
+    fontFamily: 'TTNormsPro-Bold',
+    textAlign: 'center',
   },
 });

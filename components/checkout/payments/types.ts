@@ -1,6 +1,10 @@
 import { PaymentGatewayConfig } from "../../../saleor/api.generated";
 
-export type PaymentGatewayId = "app.saleor.dummy" | "app.saleor.stripe";
+export type PaymentGatewayId =
+  | "app.saleor.dummy"
+  | "saleor.io.dummy-payment-app"
+  | "app.saleor.stripe"
+  | "chapchap.paystack";
 
 export type PaymentStatus = "paidInFull" | "overpaid" | "none" | "authorized";
 

@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { OrderFragment } from "../../saleor/api.generated";
 import { Text, colors } from "../Themed";
 import { getTripInformation } from "../../utils/attribute";
+import { getOrderStatusDisplay } from "../../utils/orderStatus";
 import { PLATFORM_FEE_PRODUCT_SLUG } from "../../utils/ensurePlatformFeeInCheckout";
 
 interface Props {
@@ -90,32 +91,6 @@ const OrderListItem: FC<Props> = ({ order }) => {
 };
 
 export default OrderListItem;
-
-function getOrderStatusDisplay(status?: string | null) {
-    const normalized = status?.toUpperCase();
-    if (normalized === "UNCONFIRMED") {
-        return {
-            label: "En attente",
-            backgroundColor: "#FFF7ED",
-            borderColor: "#FED7AA",
-            color: "#C2410C",
-        };
-    }
-    if (normalized === "FULFILLED") {
-        return {
-            label: "Terminé",
-            backgroundColor: "#ECFDF3",
-            borderColor: "#BBF7D0",
-            color: "#15803D",
-        };
-    }
-    return {
-        label: "Confirmé",
-        backgroundColor: "#E6F5F3",
-        borderColor: "#B9E6DF",
-        color: colors.green,
-    };
-}
 
 const styles = StyleSheet.create({
     card: {

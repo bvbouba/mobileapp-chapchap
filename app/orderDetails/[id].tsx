@@ -9,6 +9,7 @@ import { TicketModalContent } from "../../components/orders/TicketModalContent";
 import { getTripInformation } from "../../utils/attribute";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PLATFORM_FEE_PRODUCT_SLUG } from "../../utils/ensurePlatformFeeInCheckout";
+import { getOrderStatusDisplay } from "../../utils/orderStatus";
 
 const OrderDetailsPage = () => {
     const router = useRouter();
@@ -40,6 +41,7 @@ const OrderDetailsPage = () => {
 
     // Parsing des passagers depuis customerNote
     const passengers = orderCache.customerNote?.split(';').filter(p => p.trim() !== "") || [];
+    const statusDisplay = getOrderStatusDisplay(orderCache.status);
 
     return (
         <View style={{ flex: 1, backgroundColor: '#F1F1F1' }}>
@@ -121,7 +123,9 @@ const OrderDetailsPage = () => {
                     <Text style={styles.sectionTitle}>Détails du paiement</Text>
                     <View style={styles.priceRow}>
                         <Text style={styles.priceLabel}>Statut</Text>
-                        <Text style={[styles.priceValue, { color: '#16A34A' }]}>{orderCache.status}</Text>
+                        <Text style={[styles.priceValue, { color: statusDisplay.color }]}>
+                            {statusDisplay.label}
+                        </Text>
                     </View>
                     <Divider style={{ marginVertical: 10 }} />
                     <View style={styles.priceRow}>
@@ -145,7 +149,7 @@ const OrderDetailsPage = () => {
                 <View style={styles.modalContainer}>
                     <View style={[styles.modalHeader, { paddingTop: insets.top + 12 }]}>
                         <Pressable onPress={() => setModalVisible(false)} style={styles.closeButton}>
-                            <MaterialCommunityIcons name="close" size={28} color="white" />
+                            <MaterialCommunityIcons name="close" size={28} color="#000000" />
                         </Pressable>
                     </View>
                     <ScrollView contentContainerStyle={[styles.modalScroll, { paddingBottom: 40 + Math.max(insets.bottom, 20) }]}>
@@ -266,11 +270,11 @@ const styles = StyleSheet.create({
     ticketButtonText: { color: 'white', fontSize: 16, fontFamily: 'TTNormsPro-Bold', marginLeft: 10, textTransform: 'uppercase' },
 
     // Modal
-    modalContainer: { flex: 1, backgroundColor: '#111827' },
+    modalContainer: { flex: 1, backgroundColor: colors.green },
     modalHeader: { paddingHorizontal: 20, alignItems: 'flex-end' },
-    closeButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    closeButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.12)', alignItems: 'center', justifyContent: 'center' },
     modalScroll: { paddingBottom: 40, alignItems: 'center' },
-    modalFooterText: { color: 'rgba(255,255,255,0.5)', textAlign: 'center', fontSize: 13 },
+    modalFooterText: { color: 'rgba(0,0,0,0.55)', textAlign: 'center', fontSize: 13, fontFamily: 'TTNormsPro-Regular' },
 });
 
 export default OrderDetailsPage;

@@ -1,9 +1,12 @@
 import React, { useState } from "react";
-import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PaddedView, Text, colors } from "../Themed";
-import { paymentMethodToComponent } from "./payments/supportedPaymentApps";
+import {
+    getPaymentMethodMeta,
+    paymentMethodToComponent,
+} from "./payments/supportedPaymentApps";
 import { usePayments } from "./payments/usePayments";
 import { EllipsisLoader } from "../EllipsisLoader";
 
@@ -18,14 +21,16 @@ export const PaymentModal = ({
 }) => {
     const insets = useSafeAreaInsets();
     const { availablePaymentGateways, fetching } = usePayments();
-    
-    // Track which gateway is currently selected
     const [selectedGatewayId, setSelectedGatewayId] = useState<string | null>(null);
 
     const handleClose = () => {
         setSelectedGatewayId(null);
         onClose();
     };
+
+    const selectedMeta = selectedGatewayId
+        ? getPaymentMethodMeta(selectedGatewayId)
+        : null;
 
     return (
         <Modal
@@ -51,7 +56,9 @@ export const PaymentModal = ({
                         <View style={styles.headerSpacer} />
                     )}
                     <Text style={styles.headerTitle}>
-                        {selectedGatewayId ? "Confirmer le paiement" : "Paiement"}
+                        {selectedGatewayId
+                            ? selectedMeta?.label || "Confirmer le paiement"
+                            : "Paiement"}
                     </Text>
                     <TouchableOpacity
                         onPress={handleClose}
@@ -86,7 +93,22 @@ export const PaymentModal = ({
                                 </View>
                             ) : selectedGatewayId ? (
                                 <View style={styles.selectedContainer}>
-                                    <Text style={styles.confirmTitle}>Choisissez comment finaliser votre paiement.</Text>
+                                    {selectedMeta ? (
+                                        <View style={styles.selectedMethodHeader}>
+                                            <Image
+                                                source={selectedMeta.logo}
+                                                style={styles.selectedMethodLogo}
+                                                resizeMode="contain"
+                                            />
+                                            <Text style={styles.confirmTitle}>
+                                                Finalisez avec {selectedMeta.label}.
+                                            </Text>
+                                        </View>
+                                    ) : (
+                                        <Text style={styles.confirmTitle}>
+                                            Choisissez comment finaliser votre paiement.
+                                        </Text>
+                                    )}
                                     {(() => {
                                         const Component = paymentMethodToComponent[selectedGatewayId];
                                         const gateway = availablePaymentGateways.find(
@@ -100,32 +122,27 @@ export const PaymentModal = ({
                                     <Text style={styles.subTitle}>CHOISISSEZ VOTRE MODE DE PAIEMENT</Text>
                                     {availablePaymentGateways
                                         .filter((g) => g.id in paymentMethodToComponent)
-                                        .map((gateway) => (
-                                            <TouchableOpacity
-                                                key={gateway.id}
-                                                style={styles.methodItem}
-                                                onPress={() => setSelectedGatewayId(gateway.id)}
-                                                activeOpacity={0.85}
-                                            >
-                                                <View style={styles.methodIconBox}>
-                                                    <Ionicons
-                                                        name={
-                                                            gateway.id.includes("dummy")
-                                                                ? "flask-outline"
-                                                                : "card-outline"
-                                                        }
-                                                        size={22}
-                                                        color={colors.green}
-                                                    />
-                                                </View>
-                                                <Text style={styles.methodName}>
-                                                    {gateway.id.includes("dummy")
-                                                        ? "Passerelle de Test"
-                                                        : "Carte Bancaire"}
-                                                </Text>
-                                                <Ionicons name="chevron-forward" size={20} color="#D7D8DB" />
-                                            </TouchableOpacity>
-                                        ))}
+                                        .map((gateway) => {
+                                            const meta = getPaymentMethodMeta(gateway.id);
+                                            return (
+                                                <TouchableOpacity
+                                                    key={gateway.id}
+                                                    style={styles.methodItem}
+                                                    onPress={() => setSelectedGatewayId(gateway.id)}
+                                                    activeOpacity={0.85}
+                                                >
+                                                    <View style={styles.methodIconBox}>
+                                                        <Image
+                                                            source={meta.logo}
+                                                            style={styles.methodLogo}
+                                                            resizeMode="contain"
+                                                        />
+                                                    </View>
+                                                    <Text style={styles.methodName}>{meta.label}</Text>
+                                                    <Ionicons name="chevron-forward" size={20} color="#D7D8DB" />
+                                                </TouchableOpacity>
+                                            );
+                                        })}
                                 </View>
                             )}
                         </PaddedView>
@@ -203,22 +220,36 @@ const styles = StyleSheet.create({
         borderColor: "#D7D8DB",
     },
     methodIconBox: {
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         borderRadius: 12,
         backgroundColor: "#FFFFFF",
         justifyContent: "center",
         alignItems: "center",
         borderWidth: 1,
         borderColor: "#D7D8DB",
+        overflow: "hidden",
+    },
+    methodLogo: {
+        width: 32,
+        height: 32,
     },
     methodName: { flex: 1, fontSize: 15, color: "#000000", fontFamily: "TTNormsPro-Bold" },
     selectedContainer: {},
+    selectedMethodHeader: {
+        alignItems: "center",
+        marginBottom: 16,
+        gap: 10,
+    },
+    selectedMethodLogo: {
+        width: 48,
+        height: 48,
+    },
     confirmTitle: {
         textAlign: "center",
         fontSize: 14,
         color: "#606060",
-        marginBottom: 20,
+        marginBottom: 8,
         fontFamily: "TTNormsPro-Regular",
     },
 });
