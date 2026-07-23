@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  Switch,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, colors } from "../Themed";
@@ -29,11 +30,32 @@ interface Props {
 export const LoginForm: React.FC<Props> = ({ onClose, onSwitchToSignup }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
+  const [enableBiometrics, setEnableBiometrics] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [biometricBusy, setBiometricBusy] = useState(false);
   const phoneInput = useRef<PhoneInput>(null);
-  const { login, error: authError, loading: authLoading } = useAuth();
+  const {
+    login,
+    error: authError,
+    loading: authLoading,
+    biometricAvailable,
+    biometricLoginReady,
+    biometricLabel,
+    unlockWithBiometrics,
+  } = useAuth();
   const insets = useSafeAreaInsets();
   const phoneCountryPickerProps = usePhoneCountryPickerProps();
+
+  const runBiometricUnlock = async () => {
+    setLocalError(null);
+    setBiometricBusy(true);
+    try {
+      const ok = await unlockWithBiometrics();
+      if (ok) onClose();
+    } finally {
+      setBiometricBusy(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!isValidPhoneNumber(phoneNumber)) {
@@ -48,7 +70,10 @@ export const LoginForm: React.FC<Props> = ({ onClose, onSwitchToSignup }) => {
     setLocalError(null);
     try {
       const virtualEmail = `${phoneNumber}@chapchaptickets.com`;
-      const res = await login({ email: virtualEmail, password: password });
+      const res = await login(
+        { email: virtualEmail, password: password },
+        { enableBiometrics: enableBiometrics && biometricAvailable },
+      );
       if (res) onClose();
     } catch {
       setLocalError("Une erreur est survenue lors de la connexion.");
@@ -56,6 +81,7 @@ export const LoginForm: React.FC<Props> = ({ onClose, onSwitchToSignup }) => {
   };
 
   const displayError = localError || authError;
+  const busy = authLoading || biometricBusy;
 
   return (
     <KeyboardAvoidingView
@@ -85,6 +111,33 @@ export const LoginForm: React.FC<Props> = ({ onClose, onSwitchToSignup }) => {
         <View style={styles.form}>
           <Text style={styles.mainTitle}>Connexion</Text>
           <Text style={styles.lead}>Utilisez le numéro associé à votre compte.</Text>
+
+          {biometricLoginReady ? (
+            <Pressable
+              style={({ pressed }) => [
+                styles.biometricBtn,
+                busy && styles.disabledBtn,
+                pressed && !busy && { opacity: 0.92 },
+              ]}
+              onPress={() => void runBiometricUnlock()}
+              disabled={busy}
+            >
+              {biometricBusy ? (
+                <EllipsisLoader color="#FFFFFF" dotSize={6} />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="face-recognition" size={22} color="#FFFFFF" />
+                  <Text style={styles.biometricBtnText}>
+                    Se connecter avec {biometricLabel}
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          ) : null}
+
+          {biometricLoginReady ? (
+            <Text style={styles.orDivider}>ou mot de passe</Text>
+          ) : null}
 
           <Text style={styles.fieldLabel}>Téléphone</Text>
           <PhoneInput
@@ -118,16 +171,35 @@ export const LoginForm: React.FC<Props> = ({ onClose, onSwitchToSignup }) => {
             }}
           />
 
+          {biometricAvailable ? (
+            <View style={styles.bioToggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.bioToggleTitle}>
+                  Activer {biometricLabel} pour les prochaines connexions
+                </Text>
+                <Text style={styles.bioToggleHint}>
+                  Les jetons Saleor restent chiffrés sur cet appareil.
+                </Text>
+              </View>
+              <Switch
+                value={enableBiometrics}
+                onValueChange={setEnableBiometrics}
+                trackColor={{ false: colors.grey300, true: "#FECACA" }}
+                thumbColor={enableBiometrics ? colors.red : "#f4f3f4"}
+              />
+            </View>
+          ) : null}
+
           <Pressable
             style={({ pressed }) => [
               styles.submitBtn,
-              authLoading && styles.disabledBtn,
-              pressed && !authLoading && styles.submitBtnPressed,
+              busy && styles.disabledBtn,
+              pressed && !busy && styles.submitBtnPressed,
             ]}
             onPress={handleLogin}
-            disabled={authLoading}
+            disabled={busy}
           >
-            {authLoading ? (
+            {authLoading && !biometricBusy ? (
               <EllipsisLoader color="#FFFFFF" dotSize={6} />
             ) : (
               <Text style={styles.submitBtnText}>Se connecter</Text>
@@ -143,7 +215,7 @@ export const LoginForm: React.FC<Props> = ({ onClose, onSwitchToSignup }) => {
 
           <Pressable onPress={onSwitchToSignup} style={styles.switchBtn}>
             <Text style={styles.switchText}>
-              Pas de compte ? <Text style={styles.link}>S'inscrire</Text>
+              Pas de compte ? <Text style={styles.link}>S&apos;inscrire</Text>
             </Text>
           </Pressable>
         </View>
@@ -224,6 +296,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     fontFamily: "TTNormsPro-Regular",
+  },
+  bioToggleRow: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: colors.grey100,
+    borderWidth: 1,
+    borderColor: colors.grey300,
+  },
+  bioToggleTitle: {
+    fontSize: 13,
+    fontFamily: "TTNormsPro-Bold",
+    color: colors.text,
+  },
+  bioToggleHint: {
+    marginTop: 2,
+    fontSize: 11,
+    fontFamily: "TTNormsPro-Regular",
+    color: colors.grey500,
+  },
+  biometricBtn: {
+    marginTop: 4,
+    backgroundColor: colors.blue,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+  },
+  biometricBtnText: {
+    color: "#fff",
+    fontFamily: "TTNormsPro-Bold",
+    fontSize: 15,
+  },
+  orDivider: {
+    textAlign: "center",
+    fontSize: 12,
+    fontFamily: "TTNormsPro-Bold",
+    color: colors.grey500,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginVertical: 4,
   },
   submitBtn: {
     backgroundColor: colors.red,

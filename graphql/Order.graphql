@@ -32,6 +32,10 @@ fragment OrderPrice on TaxedMoney {
 
 fragment OrderLineVariant on ProductVariant {
   id
+  metadata {
+    key
+    value
+  }
   product {
     id
     name
@@ -95,6 +99,8 @@ fragment Order on Order {
   status
   id
   number
+  isPaid
+  paymentStatusDisplay
   metadata {
     key
     value
@@ -131,5 +137,30 @@ fragment Order on Order {
 query getOrderById($id: ID!) {
   order(id: $id) {
     ...Order
+  }
+}
+
+mutation syncMyOrders {
+  syncMyOrders {
+    linkedCount
+    orderIds
+    errors {
+      field
+      message
+      code
+    }
+  }
+}
+
+query myOrders($first: Int = 50) {
+  me {
+    id
+    orders(first: $first) {
+      edges {
+        node {
+          ...Order
+        }
+      }
+    }
   }
 }

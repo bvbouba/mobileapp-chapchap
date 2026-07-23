@@ -1,5 +1,7 @@
-import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
+import { ApolloClient, ApolloProvider, HttpLink, InMemoryCache, from } from "@apollo/client";
+import { setContext } from "@apollo/client/link/context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { getMemoryAuthToken } from "../lib/authTokenMemory";
 import {
   DarkTheme,
   DefaultTheme,
@@ -7,11 +9,10 @@ import {
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useColorScheme, LogBox } from "react-native";
 import { Provider as PaperProvider } from "react-native-paper";
 import { colors } from "../components/Themed";
-import SearchHeader from "../components/layout/SearchHeader";
 import { CartProvider } from "../context/useCartContext";
 import { OrderProvider } from "../context/useOrderContext";
 import { PaymentProvider } from "../context/usePaymentContext";
@@ -24,6 +25,7 @@ import SimpleBackHeader from "../components/layout/SimpleBackHeader";
 import TripResultHeader from "../components/layout/TripResultHeader";
 import { ConfirmationHeader } from "../components/layout/Confirmation.Header";
 import { AuthProvider } from "../lib/providers/authProvider";
+import { BiometricSessionUnlock } from "../components/account/BiometricSessionUnlock";
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -67,10 +69,26 @@ function RootLayoutNav() {
 
   const apiUrl = getConfig().saleorApi;
 
-  const apolloClient = new ApolloClient({
-    uri: apiUrl,
-    cache: new InMemoryCache(),
-  });
+  const apolloClient = useMemo(() => {
+    const authLink = setContext((_, { headers }) => {
+      // Only the in-memory token (set after password login or biometric unlock).
+      // Do not read SecureStore here — that would bypass the Face ID gate.
+      const token = getMemoryAuthToken();
+      return {
+        headers: {
+          ...headers,
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+      };
+    });
+
+    const httpLink = new HttpLink({ uri: apiUrl });
+
+    return new ApolloClient({
+      link: from([authLink, httpLink]),
+      cache: new InMemoryCache(),
+    });
+  }, [apiUrl]);
 
   const baseHeaderProps = {
     headerTitle: "",
@@ -81,6 +99,7 @@ function RootLayoutNav() {
     <>
       <ApolloProvider client={apolloClient}>
       <AuthProvider>
+        <BiometricSessionUnlock />
         <ProductsProvider>
           <CartProvider>
             <OrderProvider>

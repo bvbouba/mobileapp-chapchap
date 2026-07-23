@@ -2,13 +2,13 @@ import { View, Text, ScrollView, StyleSheet, Image } from "react-native";
 import { useOrder } from "../checkout/hooks/useOrder";
 import { Summary } from "../components/checkout/Summary";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { generateShortCode } from "../utils/generateShortCode";
+import { getConfirmationCode } from "../utils/generateShortCode";
 
 const OrderConfirmation = () => {
     const { order } = useOrder();
     if (!order) return null;
 
-    const confirmationCode = generateShortCode(order.id);
+    const confirmationCode = getConfirmationCode(order);
 
     return (
         <ScrollView style={styles.container}>

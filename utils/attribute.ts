@@ -125,7 +125,8 @@ export const getTripInformation = ({ attributes }: { attributes: SelectedAttribu
 		departureTimeStr,
 		formattedDate,
 		arrivalTimeStr,
-		departureDate
+		departureDate,
+		durationMinutes,
 	};
 };
 

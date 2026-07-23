@@ -1,20 +1,33 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback } from "react";
 import { useApolloClient } from "@apollo/client";
 import { jwtDecode } from "jwt-decode";
-import { 
-  CurrentUserDocument, 
-  useCreateTokenMutation, 
-  UserDetailsFragment, 
+import {
+  CurrentUserDocument,
+  useCreateTokenMutation,
+  UserDetailsFragment,
   useRefreshTokenMutation,
 } from "../../saleor/api.generated";
-import { useAsyncStorage } from "../hooks/useLocalStorage";
-
-const TOKEN = "@SaleorApp:authToken";
-const REFRESH_TOKEN = "@SaleorApp:refreshToken";
+import {
+  clearStoredSessionTokens,
+  getStoredAuthToken,
+  getStoredRefreshToken,
+  hasStoredRefreshSession,
+  isBiometricLoginEnabled,
+  migrateLegacyTokensToSecureStore,
+  setBiometricLoginEnabled,
+  setStoredAuthToken,
+  setStoredRefreshToken,
+} from "../secureAuthStorage";
+import { getBiometricCapability, promptBiometricUnlock } from "../biometrics";
+import { setMemoryAuthToken } from "../authTokenMemory";
 
 interface JwtPayload {
   exp: number;
 }
+
+export type LoginOptions = {
+  enableBiometrics?: boolean;
+};
 
 export interface UserConsumerProps {
   token: string | null;
@@ -23,8 +36,15 @@ export interface UserConsumerProps {
   error: string | null;
   loading: boolean;
   authenticated: boolean;
-  login: (credentials: { email: string; password: string }) => Promise<boolean>;
+  login: (
+    credentials: { email: string; password: string },
+    options?: LoginOptions,
+  ) => Promise<boolean>;
   refreshAccessToken: () => Promise<string | null>;
+  biometricAvailable: boolean;
+  biometricLoginReady: boolean;
+  biometricLabel: string;
+  unlockWithBiometrics: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<UserConsumerProps | undefined>(undefined);
@@ -37,13 +57,18 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const client = useApolloClient();
-  const [token, setToken, tokenStorageLoading] = useAsyncStorage<string>(TOKEN, "");
-  const [refreshToken, setRefreshToken, refreshStorageLoading] = useAsyncStorage<string>(REFRESH_TOKEN, "");
-  const storageReady = !tokenStorageLoading && !refreshStorageLoading;
-  
+
+  const [token, setToken] = useState<string>("");
+  const [refreshToken, setRefreshToken] = useState<string>("");
+  const [storageReady, setStorageReady] = useState(false);
+
   const [user, setUser] = useState<UserDetailsFragment | null>(null);
   const [sessionLoading, setSessionLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricLoginReady, setBiometricLoginReady] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState("biométrie");
 
   const [createToken] = useCreateTokenMutation();
   const [tokenRefresh] = useRefreshTokenMutation();
@@ -53,8 +78,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const decoded: JwtPayload = jwtDecode(t);
       return Date.now() + 60_000 >= decoded.exp * 1000;
-    } catch { return true; }
+    } catch {
+      return true;
+    }
   };
+
+  const persistTokens = useCallback(async (auth: string, refresh: string) => {
+    setToken(auth);
+    setRefreshToken(refresh);
+    setMemoryAuthToken(auth);
+    await setStoredAuthToken(auth);
+    await setStoredRefreshToken(refresh);
+  }, []);
+
+  const clearSession = useCallback(async () => {
+    setToken("");
+    setRefreshToken("");
+    setUser(null);
+    setMemoryAuthToken(null);
+    await clearStoredSessionTokens();
+  }, []);
 
   const fetchUser = async (currentToken: string) => {
     try {
@@ -65,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
         fetchPolicy: "network-only",
       });
-      
+
       if (data?.me) {
         setUser(data.me);
         return data.me;
@@ -77,7 +120,84 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async ({ email, password }: { email: string; password: string }) => {
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
+    const currentRefresh = refreshToken || (await getStoredRefreshToken());
+    if (!currentRefresh) return null;
+    try {
+      const { data, errors } = await tokenRefresh({
+        variables: { refreshToken: currentRefresh },
+      });
+      if (errors?.length) {
+        if (__DEV__) console.warn("[auth] tokenRefresh errors:", errors);
+        return null;
+      }
+      const accountErrors = data?.tokenRefresh?.errors ?? [];
+      if (accountErrors.length > 0) {
+        if (__DEV__) {
+          console.warn(
+            "[auth] tokenRefresh account errors:",
+            accountErrors.map((e) => e.message).join(", "),
+          );
+        }
+        return null;
+      }
+      const newToken = data?.tokenRefresh?.token;
+      if (newToken) {
+        setToken(newToken);
+        setMemoryAuthToken(newToken);
+        await setStoredAuthToken(newToken);
+        if (!refreshToken) setRefreshToken(currentRefresh);
+        return newToken;
+      }
+    } catch (e) {
+      if (__DEV__) console.warn("[auth] refresh token request failed", e);
+    }
+    return null;
+  }, [refreshToken, tokenRefresh]);
+
+  const restoreSessionFromTokens = useCallback(
+    async (auth: string, refresh: string): Promise<boolean> => {
+      if (!refresh) {
+        setUser(null);
+        return false;
+      }
+      setRefreshToken(refresh);
+
+      let currentToken = auth;
+      if (!currentToken || isTokenExpired(currentToken)) {
+        try {
+          const { data } = await tokenRefresh({ variables: { refreshToken: refresh } });
+          currentToken = data?.tokenRefresh?.token ?? "";
+          if (currentToken) {
+            await setStoredAuthToken(currentToken);
+          }
+        } catch {
+          currentToken = "";
+        }
+      }
+
+      if (!currentToken) {
+        setUser(null);
+        return false;
+      }
+
+      setToken(currentToken);
+      setMemoryAuthToken(currentToken);
+      const me = await fetchUser(currentToken);
+      if (!me) {
+        setUser(null);
+        setMemoryAuthToken(null);
+        return false;
+      }
+      return true;
+    },
+    [client, tokenRefresh],
+  );
+
+  const login = async (
+    { email, password }: { email: string; password: string },
+    options?: LoginOptions,
+  ) => {
     if (!storageReady) {
       setError("Initialisation en cours, réessayez dans un instant.");
       return false;
@@ -90,22 +210,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const newRefresh = data?.tokenCreate?.refreshToken;
 
       if (newToken && newRefresh) {
-        await setToken(newToken);
-        await setRefreshToken(newRefresh);
+        await persistTokens(newToken, newRefresh);
         const me = await fetchUser(newToken);
         if (!me) {
-          await setToken("");
-          await setRefreshToken("");
-          setUser(null);
+          await clearSession();
           setError("Connexion impossible : le profil utilisateur n'a pas pu être chargé.");
           return false;
         }
+
+        if (options?.enableBiometrics) {
+          const cap = await getBiometricCapability();
+          if (cap.available && cap.enrolled) {
+            const confirm = await promptBiometricUnlock(
+              `Activer ${cap.label} pour les prochaines connexions`,
+            );
+            if (confirm.success) {
+              await setBiometricLoginEnabled(true);
+              setBiometricLoginReady(true);
+            } else {
+              await setBiometricLoginEnabled(false);
+              setBiometricLoginReady(false);
+            }
+          }
+        } else {
+          await setBiometricLoginEnabled(false);
+          setBiometricLoginReady(false);
+        }
+
         return true;
-      } else {
-        setError("Identifiants incorrects ou compte inexistant.");
-        return false;
       }
-    } catch (err) {
+      setError("Identifiants incorrects ou compte inexistant.");
+      return false;
+    } catch {
       setError("Une erreur réseau est survenue.");
       return false;
     } finally {
@@ -113,83 +249,99 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
-    if (!refreshToken) return null;
+  const unlockWithBiometrics = useCallback(async (): Promise<boolean> => {
+    setError(null);
+    setSessionLoading(true);
     try {
-      const { data, errors } = await tokenRefresh({ variables: { refreshToken } });
-      if (errors?.length) {
-        if (__DEV__) console.warn("[auth] tokenRefresh errors:", errors);
-        return null;
+      const enabled = await isBiometricLoginEnabled();
+      const hasRefresh = await hasStoredRefreshSession();
+      if (!enabled || !hasRefresh) {
+        setError("Aucune session biométrique enregistrée.");
+        return false;
       }
-      const accountErrors = data?.tokenRefresh?.errors ?? [];
-      if (accountErrors.length > 0) {
-        if (__DEV__) {
-          console.warn("[auth] tokenRefresh account errors:", accountErrors.map(e => e.message).join(", "));
-        }
-        return null;
+
+      const cap = await getBiometricCapability();
+      const prompt = await promptBiometricUnlock(`Se connecter avec ${cap.label}`);
+      if (!prompt.success) {
+        setError(prompt.error ?? "Biométrie annulée.");
+        return false;
       }
-      const newToken = data?.tokenRefresh?.token;
-      if (newToken) {
-        await setToken(newToken);
-        return newToken;
+
+      const auth = await getStoredAuthToken();
+      const refresh = await getStoredRefreshToken();
+      if (!refresh) {
+        setError("Session expirée. Connectez-vous avec votre mot de passe.");
+        await setBiometricLoginEnabled(false);
+        setBiometricLoginReady(false);
+        return false;
       }
-    } catch (e) {
-      if (__DEV__) console.warn("[auth] refresh token request failed", e);
+
+      const ok = await restoreSessionFromTokens(auth, refresh);
+      if (!ok) {
+        setError("Session expirée. Connectez-vous avec votre mot de passe.");
+        await clearSession();
+        await setBiometricLoginEnabled(false);
+        setBiometricLoginReady(false);
+        return false;
+      }
+      return true;
+    } finally {
+      setSessionLoading(false);
     }
-    return null;
-  }, [refreshToken, setToken, tokenRefresh]);
+  }, [clearSession, restoreSessionFromTokens]);
 
   const logout = async () => {
-    await setToken("");
-    await setRefreshToken("");
-    setUser(null);
-    await client.clearStore(); // Important : vide le cache Apollo
+    await clearSession();
+    await setBiometricLoginEnabled(false);
+    setBiometricLoginReady(false);
+    await client.clearStore();
   };
 
   useEffect(() => {
-    if (!storageReady) {
-      return;
-    }
     let cancelled = false;
 
     const initAuth = async () => {
       setSessionLoading(true);
       try {
-        if (!token) {
-          setUser(null);
+        await migrateLegacyTokensToSecureStore();
+
+        const cap = await getBiometricCapability();
+        if (!cancelled) {
+          setBiometricAvailable(cap.available && cap.enrolled);
+          setBiometricLabel(cap.label);
+        }
+
+        const biometricOn = await isBiometricLoginEnabled();
+        const hasRefresh = await hasStoredRefreshSession();
+        const ready = biometricOn && hasRefresh && cap.available && cap.enrolled;
+        if (!cancelled) setBiometricLoginReady(ready);
+
+        if (ready) {
+          if (!cancelled) {
+            setToken("");
+            setRefreshToken("");
+            setUser(null);
+            setMemoryAuthToken(null);
+          }
           return;
         }
 
-        let currentToken = token;
-        if (isTokenExpired(currentToken)) {
-          currentToken = (await refreshAccessToken()) ?? "";
-          if (!currentToken) {
-            if (!cancelled) {
-              setUser(null);
-              await setToken("");
-              await setRefreshToken("");
-            }
-            return;
-          }
+        const auth = await getStoredAuthToken();
+        const refresh = await getStoredRefreshToken();
+        if (!refresh && !auth) {
+          if (!cancelled) setUser(null);
+          return;
         }
 
-        if (cancelled) return;
-
-        let me = await fetchUser(currentToken);
-        if (!me && refreshToken) {
-          const refreshedToken = await refreshAccessToken();
-          if (!cancelled && refreshedToken) {
-            me = await fetchUser(refreshedToken);
-          }
-        }
-
-        if (!cancelled && !me) {
-          setUser(null);
+        if (!cancelled) {
+          const ok = await restoreSessionFromTokens(auth, refresh);
+          if (!ok) await clearSession();
         }
       } catch (e) {
         console.error("Init auth error", e);
       } finally {
         if (!cancelled) {
+          setStorageReady(true);
           setSessionLoading(false);
         }
       }
@@ -198,7 +350,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [storageReady, token, refreshToken, refreshAccessToken, setToken, setRefreshToken]);
+  }, []);
 
   useEffect(() => {
     if (!storageReady || !token || !refreshToken) {
@@ -215,7 +367,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        token,
+        token: token || null,
         logout,
         user,
         error,
@@ -223,6 +375,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authenticated: !!user,
         login,
         refreshAccessToken,
+        biometricAvailable,
+        biometricLoginReady,
+        biometricLabel,
+        unlockWithBiometrics,
       }}
     >
       {children}

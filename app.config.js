@@ -28,6 +28,14 @@ module.exports = {
     "expo-font",
     "expo-router",
     "expo-web-browser",
+    "expo-secure-store",
+    [
+      "expo-local-authentication",
+      {
+        faceIDPermission:
+          "ChapChap utilise Face ID pour vous reconnecter rapidement et en sécurité.",
+      },
+    ],
     [
       "expo-splash-screen",
       {
@@ -63,6 +71,10 @@ module.exports = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.vaflaly.exposhop",
+    infoPlist: {
+      NSFaceIDUsageDescription:
+        "ChapChap utilise Face ID pour vous reconnecter rapidement et en sécurité.",
+    },
   },
   android: {
     package: "com.vaflaly.exposhop",

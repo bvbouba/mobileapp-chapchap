@@ -1,19 +1,35 @@
-import { Buffer } from 'buffer';
+/**
+ * Human-facing confirmation code shown on customer tickets.
+ * Same algorithm as operators app — staff search uses metadata key confirmation_code.
+ */
+export const CONFIRMATION_CODE_KEY = "confirmation_code";
 
 export const generateShortCode = (saleorId: string): string => {
-  // 1. Décoder le Base64 ou utiliser la chaîne brute
-  // 2. Créer un hash numérique simple
   let hash = 0;
   for (let i = 0; i < saleorId.length; i++) {
     const char = saleorId.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Conversion en entier 32 bits
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
   }
-  
-  // 3. Convertir en Base36 et extraire 5 caractères
-  // On utilise Math.abs pour éviter le signe négatif
   return Math.abs(hash).toString(36).toUpperCase().substring(0, 5);
 };
 
-// Exemple avec votre ID :
-// "T3JkZXI6YzVkNjllZjItNzFmNy00MDA5LTk1NTQtMjk0MWY5YzExNTE1" -> "7K9X2"
+export function confirmationCodeMetadataInput(
+  saleorId: string,
+): Array<{ key: string; value: string }> {
+  return [{ key: CONFIRMATION_CODE_KEY, value: generateShortCode(saleorId) }];
+}
+
+/** Prefer stored metadata (searchable); fall back to hashing the order id (legacy tickets). */
+export function getConfirmationCode(order: {
+  id: string;
+  metadata?: Array<{ key?: string | null; value?: string | null }> | null;
+}): string {
+  for (const m of order.metadata ?? []) {
+    if ((m.key ?? "").trim().toLowerCase() === CONFIRMATION_CODE_KEY) {
+      const v = (m.value ?? "").trim().toUpperCase();
+      if (v) return v;
+    }
+  }
+  return generateShortCode(order.id);
+}
