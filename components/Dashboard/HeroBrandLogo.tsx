@@ -14,7 +14,7 @@ export function HeroBrandLogo({ width, height, style }: Props) {
       source={BRAND_LOGO}
       style={[styles.logo, { width, height }, style]}
       resizeMode="contain"
-      accessibilityLabel="ChapTicket"
+      accessibilityLabel="ChapChapTicket"
     />
   );
 }

@@ -1,5 +1,5 @@
 import { FC, useState } from "react";
-import { CollectionFragment } from "../../../saleor/api.generated";
+import { CollectionFragmentFragment } from "../../../saleor/api.generated";
 import { ImageBackground, Pressable, StyleSheet, Image, useWindowDimensions } from "react-native";
 import { View, Text, PaddedView, colors } from "../../Themed";
 import parseDescription from "../../../utils/parseDescription";
@@ -9,8 +9,8 @@ import { useRouter } from "expo-router";
 import AnimatedDotsCarousel from 'react-native-animated-dots-carousel';
 
 interface Props {
-    collection: CollectionFragment
-    onClick: (collection: CollectionFragment) => void
+    collection: CollectionFragmentFragment
+    onClick: (collection: CollectionFragmentFragment) => void
     onProductClick: (collectionId: string, productId: string, variantId: string) => void
 }
 

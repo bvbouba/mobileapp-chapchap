@@ -106,6 +106,10 @@ fragment CheckoutFragment on Checkout {
 		...CheckoutLineFragment
 	}
 	note
+	metadata {
+		key
+		value
+	}
 }
 
 fragment CheckoutLineFragment on CheckoutLine {

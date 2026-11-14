@@ -91,7 +91,7 @@ export const SignupForm: React.FC<Props> = ({ onClose, onSwitchToLogin }) => {
     setLoading(true);
     setError(null);
     try {
-      const virtualEmail = `${phone}@chapchaptickets.com`;
+      const virtualEmail = `${phone}@chapchapticket.com`;
       const { data } = await registerUser({
         variables: {
           input: { email: virtualEmail, password, firstName, lastName },

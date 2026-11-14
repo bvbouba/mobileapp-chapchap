@@ -40,6 +40,9 @@ fragment OrderLineVariant on ProductVariant {
     id
     name
     slug
+    thumbnail(size: 256) {
+      url
+    }
     attributes {
       attribute {
         id
@@ -58,6 +61,7 @@ fragment OrderLineVariant on ProductVariant {
     }
     media {
       url
+      type
     }
   }
   attributes {
@@ -100,10 +104,17 @@ fragment Order on Order {
   id
   number
   isPaid
+  paymentStatus
   paymentStatusDisplay
+  authorizeStatus
+  chargeStatus
   metadata {
     key
     value
+  }
+  fulfillments {
+    id
+    status
   }
   shippingPrice {
     ...OrderShippingPrice

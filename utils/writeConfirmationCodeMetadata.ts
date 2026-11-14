@@ -5,6 +5,7 @@ import {
   confirmationCodeMetadataInput,
   generateShortCode,
 } from "./generateShortCode";
+import { awaitingGuichetMetadataInput } from "../lib/bookingStatus";
 
 const UpdateObjectMetadataDocument = gql`
   mutation UpdateObjectMetadata($id: ID!, $input: [MetadataInput!]!) {
@@ -60,7 +61,10 @@ export async function writeConfirmationCodeMetadata(
       mutation: UpdateObjectMetadataDocument,
       variables: {
         id: objectId,
-        input: [{ key: CONFIRMATION_CODE_KEY, value }],
+        input: [
+          { key: CONFIRMATION_CODE_KEY, value },
+          ...awaitingGuichetMetadataInput(),
+        ],
       },
       errorPolicy: "all",
     });

@@ -1,88 +1,115 @@
-import { useMemo, useState, useEffect } from "react";
-import { 
-    useCheckoutEmailUpdateMutation,
-    useCheckoutBillingAddressUpdateMutation,
-    useCheckoutCustomerNoteUpdateMutation,
-    CountryCode 
+import { useState, useEffect } from "react";
+import { useApolloClient } from "@apollo/client";
+import {
+  useCheckoutEmailUpdateMutation,
+  useCheckoutBillingAddressUpdateMutation,
+  CountryCode,
 } from "../../saleor/api.generated";
 import { updateCheckoutContactInfo } from "../services";
 import { CheckoutFragment } from "../graphql";
+import { PLATFORM_FEE_PRODUCT_SLUG } from "../../utils/ensurePlatformFeeInCheckout";
+import {
+  parsePassengerRecords,
+  type PassengerRecord,
+} from "../../utils/passengersMetadata";
+import { e164FromAccountEmail } from "../../utils/formatAccountPhone";
 
-export const useGuestUserForm = (checkout: CheckoutFragment | undefined, onContinueToPayment?: () => void) => {
-    const [loading, setLoading] = useState(false);
-    const [phone, setPhone] = useState("");
-    const [passengers, setPassengers] = useState<{firstName: string, lastName: string}[]>([]);
+export const useGuestUserForm = (
+  checkout: CheckoutFragment | undefined,
+  onContinueToPayment?: () => void,
+  accountEmail?: string | null,
+) => {
+  const apolloClient = useApolloClient();
+  const [loading, setLoading] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [passengers, setPassengers] = useState<PassengerRecord[]>([]);
 
-    // These hooks return the "mutate" function as the first element in the array
-    const [updateEmailFn] = useCheckoutEmailUpdateMutation();
-    const [updateBillingFn] = useCheckoutBillingAddressUpdateMutation();
-    const [updateNoteFn] = useCheckoutCustomerNoteUpdateMutation();
+  const [updateEmailFn] = useCheckoutEmailUpdateMutation();
+  const [updateBillingFn] = useCheckoutBillingAddressUpdateMutation();
 
-    // Initialize values from Checkout (Parsing logic remains the same)
-    useEffect(() => {
-        if (checkout) {
-            const quantity = checkout.lines?.[0]?.quantity || 1;
-            const existingNote = checkout.note?.split(";").filter(Boolean).map((p: string) => {
-                const [lastName, firstName] = p.split(",");
-                return { lastName: lastName || "", firstName: firstName || "" };
-            }) || [];
+  useEffect(() => {
+    if (!checkout) return;
 
-            const initialPassengers = Array.from({ length: quantity }, (_, i) => ({
-                firstName: existingNote[i]?.firstName || checkout.billingAddress?.firstName || "",
-                lastName: existingNote[i]?.lastName || checkout.billingAddress?.lastName || "",
-            }));
+    const tripLines =
+      checkout.lines?.filter(
+        (l) => l?.variant?.product?.slug !== PLATFORM_FEE_PRODUCT_SLUG,
+      ) ?? [];
+    const quantity =
+      tripLines.reduce((acc, l) => acc + (l.quantity || 0), 0) || 1;
 
-            setPassengers(initialPassengers);
-            setPhone(checkout.billingAddress?.phone || "");
-        }
-    }, [checkout?.id]);
+    const existing = parsePassengerRecords({
+      metadata: checkout.metadata,
+      customerNote: checkout.note,
+    });
 
-    const handleSubmit = async () => {
-        if (!checkout) return;
-        setLoading(true);
+    const initialPassengers = Array.from({ length: quantity }, (_, i) => ({
+      firstName:
+        existing[i]?.firstName ||
+        checkout.billingAddress?.firstName ||
+        "",
+      lastName:
+        existing[i]?.lastName || checkout.billingAddress?.lastName || "",
+    }));
 
-        // 1. Logic from Next.js: Generate email from phone
-        const cleanPhone = phone.replace("+", "");
-        const generatedEmail = `${cleanPhone}@chapchaptickets.com`;
+    setPassengers(initialPassengers);
 
-        // 2. Format Passenger Data for Customer Note
-        const customerNote = passengers
-            .map((p) => `${p.lastName},${p.firstName}`)
-            .join(";");
+    const fromBilling = (checkout.billingAddress?.phone || "").trim();
+    const fromAccount = e164FromAccountEmail(accountEmail);
+    const fromCheckoutEmail = e164FromAccountEmail(
+      checkout.email && checkout.email !== "anonymous@chapchapticket.com"
+        ? checkout.email
+        : null,
+    );
+    setPhone(fromBilling || fromAccount || fromCheckoutEmail || "");
+  }, [checkout?.id, accountEmail]);
 
-        try {
-            console.log(checkout.id)
-            const result = await updateCheckoutContactInfo({
-                email: generatedEmail,
-                checkoutId: checkout.id,
-                customerNote: customerNote,
-                address: {
-                    phone: phone,
-                    firstName: passengers[0]?.firstName || "",
-                    lastName: passengers[0]?.lastName || "",
-                    country: CountryCode.Ci,
-                    city: "Abidjan",
-                    streetAddress1: "Abidjan",
-                },
-                // Pass the specific mutation functions
-                updateEmailFn,
-                updateBillingFn,
-                updateNoteFn
-            });
+  const handleSubmit = async () => {
+    if (!checkout) return;
+    setLoading(true);
 
-            if (result.data?.checkoutContactUpdate?.errors.length === 0) {
-                onContinueToPayment?.();
-            } else {
-                const firstError = result.data?.checkoutContactUpdate?.errors[0].code;
-                alert(firstError || "Erreur lors de la mise à jour");
-            }
-        } catch (err: any) {
-            console.error("Mutation error:", err);
-            alert("Une erreur est survenue.");
-        } finally {
-            setLoading(false);
-        }
-    };
+    const cleanPhone = phone.replace("+", "");
+    const generatedEmail = `${cleanPhone}@chapchapticket.com`;
 
-    return { phone, setPhone, passengers, setPassengers, handleSubmit, loading };
+    try {
+      const result = await updateCheckoutContactInfo({
+        email: generatedEmail,
+        checkoutId: checkout.id,
+        passengers,
+        address: {
+          phone,
+          firstName: passengers[0]?.firstName || "",
+          lastName: passengers[0]?.lastName || "",
+          country: CountryCode.Ci,
+          city: "Abidjan",
+          streetAddress1: "Abidjan",
+        },
+        updateEmailFn,
+        updateBillingFn,
+        apolloClient,
+      });
+
+      if (result.data?.checkoutContactUpdate?.errors.length === 0) {
+        onContinueToPayment?.();
+      } else {
+        const firstError =
+          result.data?.checkoutContactUpdate?.errors[0]?.code ||
+          result.data?.checkoutContactUpdate?.errors[0]?.message;
+        alert(firstError || "Erreur lors de la mise à jour");
+      }
+    } catch (err) {
+      console.error("Mutation error:", err);
+      alert("Une erreur est survenue.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    phone,
+    setPhone,
+    passengers,
+    setPassengers,
+    handleSubmit,
+    loading,
+  };
 };

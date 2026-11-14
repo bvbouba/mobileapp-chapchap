@@ -18,7 +18,15 @@ web-build/
 
 # Do not check in
 .env
+google-service-account.json
+AuthKey_*.p8
 
 # Generated files
 saleor/api.generated.ts
 graphql.schema.generated.json
+
+# EAS local signing
+credentials.json
+credentials/
+*.jks
+*.p12

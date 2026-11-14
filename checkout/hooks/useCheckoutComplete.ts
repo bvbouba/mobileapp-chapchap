@@ -4,6 +4,7 @@ import { useCheckoutCompleteMutation } from "../../saleor/api.generated";
 import { useCheckout } from "../../context/useCheckout";
 import { useOrderContext } from "../../context/useOrderContext";
 import { useCartContext } from "../../context/useCartContext";
+import { awaitingGuichetMetadataInput } from "../../lib/bookingStatus";
 import { generateShortCode } from "../../utils/generateShortCode";
 import { writeConfirmationCodeMetadata } from "../../utils/writeConfirmationCodeMetadata";
 
@@ -28,7 +29,10 @@ export const useCheckoutComplete = () => {
       // 2) Pass the same code into checkoutComplete(metadata) as a second path.
       // Code is hash(checkout.id) so it is known before the order exists.
       const code = generateShortCode(checkout.id);
-      const codeMeta = [{ key: "confirmation_code", value: code }];
+      const codeMeta = [
+        { key: "confirmation_code", value: code },
+        ...awaitingGuichetMetadataInput(),
+      ];
 
       const checkoutWrite = await writeConfirmationCodeMetadata(
         client,

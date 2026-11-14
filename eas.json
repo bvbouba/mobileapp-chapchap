@@ -1,0 +1,94 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "node": "20.19.4",
+      "developmentClient": true,
+      "distribution": "internal",
+      "credentialsSource": "local",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SALEOR_API_URL": "https://server.chapchapticket.com/graphql/",
+        "SALEOR_API_URL": "https://server.chapchapticket.com/graphql/",
+        "EXPO_PUBLIC_STOREFRONT_URL": "https://www.chapchapticket.com",
+        "CHANNEL": "ci",
+        "LOCALE": "fr",
+        "APP_NAME": "ChapChap Tickets",
+        "BOOKING_CUTOFF_MINUTES_BEFORE_DEPARTURE": "60"
+      }
+    },
+    "preview": {
+      "node": "20.19.4",
+      "distribution": "internal",
+      "credentialsSource": "local",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SALEOR_API_URL": "https://server.chapchapticket.com/graphql/",
+        "SALEOR_API_URL": "https://server.chapchapticket.com/graphql/",
+        "EXPO_PUBLIC_STOREFRONT_URL": "https://www.chapchapticket.com",
+        "CHANNEL": "ci",
+        "LOCALE": "fr",
+        "APP_NAME": "ChapChap Tickets",
+        "BOOKING_CUTOFF_MINUTES_BEFORE_DEPARTURE": "60"
+      }
+    },
+    "preview-ios": {
+      "node": "20.19.4",
+      "distribution": "internal",
+      "credentialsSource": "remote",
+      "ios": {
+        "simulator": false,
+        "resourceClass": "m-medium"
+      },
+      "env": {
+        "EXPO_PUBLIC_SALEOR_API_URL": "https://server.chapchapticket.com/graphql/",
+        "SALEOR_API_URL": "https://server.chapchapticket.com/graphql/",
+        "EXPO_PUBLIC_STOREFRONT_URL": "https://www.chapchapticket.com",
+        "CHANNEL": "ci",
+        "LOCALE": "fr",
+        "APP_NAME": "ChapChap Tickets",
+        "BOOKING_CUTOFF_MINUTES_BEFORE_DEPARTURE": "60"
+      }
+    },
+    "production": {
+      "node": "20.19.4",
+      "android": {
+        "buildType": "app-bundle",
+        "credentialsSource": "local"
+      },
+      "ios": {
+        "resourceClass": "m-medium",
+        "credentialsSource": "remote"
+      },
+      "env": {
+        "EXPO_PUBLIC_SALEOR_API_URL": "https://server.chapchapticket.com/graphql/",
+        "SALEOR_API_URL": "https://server.chapchapticket.com/graphql/",
+        "EXPO_PUBLIC_STOREFRONT_URL": "https://www.chapchapticket.com",
+        "CHANNEL": "ci",
+        "LOCALE": "fr",
+        "APP_NAME": "ChapChap Tickets",
+        "BOOKING_CUTOFF_MINUTES_BEFORE_DEPARTURE": "60"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleTeamId": "Q84SJ3NGGT",
+        "appleId": "bvbouba@gmail.com",
+        "ascAppId":"6797748416"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}

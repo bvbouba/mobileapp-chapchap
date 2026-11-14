@@ -1,18 +1,18 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  View,
+  View as RNView,
 } from "react-native";
-import { Button } from "react-native-paper";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import PhoneInput from "react-native-phone-number-input";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isValidPhoneNumber } from "libphonenumber-js";
@@ -28,9 +28,14 @@ import { Text, colors } from "../../../Themed";
 import {
   CI_MOMO_PROVIDERS,
   CiMomoProvider,
+  detectCiMomoProviderFromPhone,
+  maskCiPhone,
   paystackGatewayId,
   PaystackMomoInitializeData,
 } from "./types";
+
+const POLL_MS = 5000;
+const WAIT_SECONDS = 180; // 3 minutes
 
 function resolveCheckoutEmail(checkout: {
   email?: string | null;
@@ -38,8 +43,25 @@ function resolveCheckoutEmail(checkout: {
 } | null | undefined): string {
   if (checkout?.email) return checkout.email;
   const phone = checkout?.billingAddress?.phone;
-  if (phone) return `${phone.replace("+", "")}@chapchaptickets.com`;
-  return "customer@chapchaptickets.com";
+  if (phone) return `${phone.replace("+", "")}@chapchapticket.com`;
+  return "customer@chapchapticket.com";
+}
+
+function formatPayAmount(
+  amount?: number | null,
+  currency?: string | null,
+): string {
+  if (amount == null || !Number.isFinite(amount)) return "";
+  const cur =
+    (currency || "XOF").toUpperCase() === "XOF" ? "FCFA" : currency || "";
+  return `${Math.round(amount).toLocaleString("fr-FR")} ${cur}`.trim();
+}
+
+function formatCountdown(totalSec: number): string {
+  const s = Math.max(0, totalSec);
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m.toString().padStart(2, "0")}:${r.toString().padStart(2, "0")}`;
 }
 
 export const PaystackComponent = () => {
@@ -51,22 +73,62 @@ export const PaystackComponent = () => {
   const [transactionInitialize, initResult] = useTransactionInitializeMutation();
   const [transactionProcess, processResult] = useTransactionProcessMutation();
 
-  const [provider, setProvider] = useState<CiMomoProvider>("orange");
-  const [phone, setPhone] = useState(checkout?.billingAddress?.phone || "");
+  const initialPhone = checkout?.billingAddress?.phone || "";
+  const detectedInitial = detectCiMomoProviderFromPhone(initialPhone);
+
+  const [provider, setProvider] = useState<CiMomoProvider>(
+    detectedInitial || "wave",
+  );
+  const [providerLockedToWave, setProviderLockedToWave] = useState(false);
+  const [phone, setPhone] = useState(initialPhone);
   const [waiting, setWaiting] = useState(false);
   const [displayText, setDisplayText] = useState<string | null>(null);
   const [reference, setReference] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(WAIT_SECONDS);
   const finishingRef = useRef(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const phoneInputRef = useRef<PhoneInput>(null);
+
+  const amountLabel = formatPayAmount(
+    checkout?.totalPrice?.gross?.amount,
+    checkout?.totalPrice?.gross?.currency,
+  );
+  const selectedMeta = useMemo(
+    () => CI_MOMO_PROVIDERS.find((p) => p.code === provider),
+    [provider],
+  );
+
+  // Prefill / sync phone when checkout loads.
+  useEffect(() => {
+    const fromCheckout = checkout?.billingAddress?.phone || "";
+    if (fromCheckout && !phone) {
+      setPhone(fromCheckout);
+      const detected = detectCiMomoProviderFromPhone(fromCheckout);
+      if (detected && !providerLockedToWave) setProvider(detected);
+    }
+  }, [checkout?.billingAddress?.phone]);
 
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
     };
   }, []);
+
+  const applyPhoneChange = (next: string) => {
+    setPhone(next);
+    if (providerLockedToWave) return;
+    const detected = detectCiMomoProviderFromPhone(next);
+    if (detected) setProvider(detected);
+  };
+
+  const selectProvider = (code: CiMomoProvider) => {
+    setProvider(code);
+    setProviderLockedToWave(code === "wave");
+  };
 
   const busy =
     initResult.loading ||
@@ -74,8 +136,19 @@ export const PaystackComponent = () => {
     completingCheckout ||
     finishingRef.current;
 
+  const stopTimers = () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = null;
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    countdownRef.current = null;
+  };
+
   const finishPayment = useCallback(
-    async (pspReference: string, txnId: string, { silent }: { silent?: boolean } = {}) => {
+    async (
+      pspReference: string,
+      txnId: string,
+      { silent }: { silent?: boolean } = {},
+    ) => {
       if (finishingRef.current) return false;
       finishingRef.current = true;
 
@@ -92,7 +165,7 @@ export const PaystackComponent = () => {
             Alert.alert(
               "Paiement",
               data.transactionProcess.errors[0].message ||
-                "Vérification du paiement échouée."
+                "Vérification du paiement échouée.",
             );
           }
           finishingRef.current = false;
@@ -105,12 +178,12 @@ export const PaystackComponent = () => {
           eventType === "AUTHORIZATION_FAILURE";
 
         if (failed) {
-          if (pollRef.current) clearInterval(pollRef.current);
+          stopTimers();
           setWaiting(false);
           Alert.alert(
             "Paiement refusé",
             data?.transactionProcess?.transactionEvent?.message ||
-              "Le paiement n'a pas abouti."
+              "Le paiement n'a pas abouti.",
           );
           finishingRef.current = false;
           return false;
@@ -121,17 +194,10 @@ export const PaystackComponent = () => {
           eventType === "AUTHORIZATION_ACTION_REQUIRED"
         ) {
           finishingRef.current = false;
-          if (!silent) {
-            Alert.alert(
-              "En attente",
-              data?.transactionProcess?.transactionEvent?.message ||
-                "Validez encore le paiement sur votre téléphone, puis réessayez."
-            );
-          }
           return false;
         }
 
-        if (pollRef.current) clearInterval(pollRef.current);
+        stopTimers();
         setWaiting(false);
         await refetch?.();
         const result = await onCheckoutComplete();
@@ -150,21 +216,31 @@ export const PaystackComponent = () => {
         return false;
       }
     },
-    [transactionProcess, onCheckoutComplete, refetch]
+    [transactionProcess, onCheckoutComplete, refetch],
   );
 
   const startPolling = (pspReference: string, txnId: string) => {
-    if (pollRef.current) clearInterval(pollRef.current);
+    stopTimers();
+    setSecondsLeft(WAIT_SECONDS);
+    countdownRef.current = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     let attempts = 0;
     pollRef.current = setInterval(() => {
       attempts += 1;
-      if (attempts > 36) {
-        // ~3 minutes at 5s
+      if (attempts > Math.ceil((WAIT_SECONDS * 1000) / POLL_MS)) {
         if (pollRef.current) clearInterval(pollRef.current);
         return;
       }
       void finishPayment(pspReference, txnId, { silent: true });
-    }, 5000);
+    }, POLL_MS);
   };
 
   const onPay = async () => {
@@ -173,15 +249,12 @@ export const PaystackComponent = () => {
       return;
     }
 
-    // `phone` comes from onChangeFormattedText and is already E.164 (+225...).
-    // Do NOT use getNumberAfterPossiblyEliminatingZero(): it strips the leading 0,
-    // which is a real digit in Ivorian 10-digit numbers.
     const formattedPhone = phone.replace(/\s+/g, "");
 
     if (!formattedPhone || !isValidPhoneNumber(formattedPhone)) {
       Alert.alert(
         "Téléphone",
-        "Entrez un numéro Mobile Money valide avec l'indicatif du pays."
+        "Entrez un numéro Mobile Money valide avec l'indicatif du pays.",
       );
       return;
     }
@@ -192,7 +265,8 @@ export const PaystackComponent = () => {
       const { data } = await transactionInitialize({
         variables: {
           checkoutId: checkout.id,
-          action: TransactionFlowStrategyEnum.Authorization,
+          // MoMo has no real pre-auth — Charge is allowed on storefront checkouts.
+          action: TransactionFlowStrategyEnum.Charge,
           paymentGateway: {
             id: paystackGatewayId,
             data: {
@@ -208,7 +282,7 @@ export const PaystackComponent = () => {
       if (data?.transactionInitialize?.errors?.length) {
         Alert.alert(
           "Paiement refusé",
-          data.transactionInitialize.errors[0].message || ""
+          data.transactionInitialize.errors[0].message || "",
         );
         return;
       }
@@ -218,7 +292,8 @@ export const PaystackComponent = () => {
         | null
         | undefined;
       const txnId = data?.transactionInitialize?.transaction?.id;
-      const eventMessage = data?.transactionInitialize?.transactionEvent?.message;
+      const eventMessage =
+        data?.transactionInitialize?.transactionEvent?.message;
       const ref = payload?.reference;
 
       if (payload?.exception || !ref || !txnId) {
@@ -226,7 +301,7 @@ export const PaystackComponent = () => {
           "Paystack",
           eventMessage ||
             payload?.displayText ||
-            "Impossible de démarrer le paiement Mobile Money."
+            "Impossible de démarrer le paiement Mobile Money.",
         );
         return;
       }
@@ -236,7 +311,7 @@ export const PaystackComponent = () => {
       setDisplayText(
         payload.displayText ||
           eventMessage ||
-          "Validez le paiement sur votre téléphone."
+          "Validez le paiement sur votre téléphone.",
       );
       setWaiting(true);
 
@@ -260,142 +335,208 @@ export const PaystackComponent = () => {
     void finishPayment(reference, transactionId, { silent: false });
   };
 
-  if (waiting) {
-    const selectedProvider = CI_MOMO_PROVIDERS.find((p) => p.code === provider);
+  const cancelWaiting = () => {
+    stopTimers();
+    setWaiting(false);
+    finishingRef.current = false;
+  };
 
-    return (
-      <View style={styles.waitBox}>
-        {selectedProvider ? (
-          <Image
-            source={selectedProvider.logo}
-            style={styles.waitLogo}
-            resizeMode="contain"
-          />
-        ) : null}
-        <ActivityIndicator color={colors.green} size="large" />
-        <Text style={styles.waitTitle}>Confirmez sur votre téléphone</Text>
-        <Text style={styles.waitBody}>
-          {displayText ||
-            "Une demande a été envoyée. Approuvez le paiement dans votre app / USSD Mobile Money."}
-        </Text>
-        <Text style={styles.waitHint}>
-          Cela peut prendre jusqu’à 3 minutes. Ne fermez pas cet écran.
-        </Text>
-        <Button
-          mode="contained"
-          onPress={onConfirmPaid}
-          loading={busy}
-          disabled={busy}
-          style={styles.button}
-          contentStyle={styles.content}
-          labelStyle={styles.label}
-        >
-          J’AI CONFIRMÉ LE PAIEMENT
-        </Button>
-        <Pressable
-          onPress={() => {
-            if (pollRef.current) clearInterval(pollRef.current);
-            setWaiting(false);
-            finishingRef.current = false;
-          }}
-          style={styles.cancelLink}
-        >
-          <Text style={styles.cancelText}>Annuler</Text>
-        </Pressable>
-      </View>
-    );
-  }
+  const ctaLabel = amountLabel
+    ? `Payer ${amountLabel} avec ${selectedMeta?.shortLabel || "Mobile Money"}`
+    : `Payer avec ${selectedMeta?.shortLabel || "Mobile Money"}`;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.flex}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
-    >
-      <ScrollView
-        ref={scrollRef}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom, 16) + 24 },
-        ]}
+    <>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.flex}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
       >
-        <Text style={styles.hint}>
-          Choisissez votre opérateur Mobile Money, puis validez sur votre téléphone.
-        </Text>
-
-        <Text style={styles.fieldLabel}>Opérateur</Text>
-        <View style={styles.providerList}>
-          {CI_MOMO_PROVIDERS.map((item) => {
-            const selected = provider === item.code;
-            return (
-              <Pressable
-                key={item.code}
-                onPress={() => setProvider(item.code)}
-                style={[styles.providerRow, selected && styles.providerRowSelected]}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-              >
-                <View style={styles.providerLogoBox}>
-                  <Image
-                    source={item.logo}
-                    style={styles.providerLogo}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.providerName,
-                    selected && styles.providerNameSelectedText,
-                  ]}
-                >
-                  {item.label}
-                </Text>
-                <Ionicons
-                  name={selected ? "radio-button-on" : "radio-button-off"}
-                  size={22}
-                  color={selected ? colors.green : "#D7D8DB"}
-                />
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Text style={styles.fieldLabel}>Numéro Mobile Money</Text>
-        <PhoneInput
-          ref={phoneInputRef}
-          defaultValue={phone}
-          defaultCode="CI"
-          layout="first"
-          onChangeFormattedText={setPhone}
-          containerStyle={styles.phoneInputContainer}
-          textContainerStyle={styles.phoneTextContainer}
-          textInputStyle={styles.phoneTextInput}
-          codeTextStyle={styles.phoneCodeText}
-          filterProps={phoneCountryPickerProps.filterProps}
-          countryPickerProps={phoneCountryPickerProps}
-          placeholder="Numéro de téléphone"
-          textInputProps={{
-            onFocus: () => {
-              setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-            },
-          }}
-        />
-
-        <Button
-          mode="contained"
-          onPress={onPay}
-          loading={busy}
-          disabled={busy}
-          style={styles.button}
-          contentStyle={styles.content}
-          labelStyle={styles.label}
+        <ScrollView
+          ref={scrollRef}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom, 16) + 24 },
+          ]}
         >
-          {busy ? "ENVOI…" : "PAYER PAR MOBILE MONEY"}
-        </Button>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <Text style={styles.sectionLabel}>Moyen de paiement</Text>
+          <Text style={styles.sectionHint}>Sélectionnez votre opérateur :</Text>
+
+          <RNView style={styles.providerList}>
+            {CI_MOMO_PROVIDERS.map((item) => {
+              const selected = provider === item.code;
+              return (
+                <Pressable
+                  key={item.code}
+                  onPress={() => selectProvider(item.code)}
+                  style={[
+                    styles.providerRow,
+                    selected && styles.providerRowSelected,
+                  ]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                >
+                  <Ionicons
+                    name={selected ? "radio-button-on" : "radio-button-off"}
+                    size={22}
+                    color={selected ? colors.primary : "#D7D8DB"}
+                  />
+                  <RNView style={styles.providerLogoBox}>
+                    <Image
+                      source={item.logo}
+                      style={styles.providerLogo}
+                      resizeMode="contain"
+                    />
+                  </RNView>
+                  <Text
+                    style={[
+                      styles.providerName,
+                      selected && styles.providerNameSelectedText,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </RNView>
+
+          <Text style={styles.fieldLabel}>
+            Numéro de téléphone pour le débit
+          </Text>
+          <PhoneInput
+            ref={phoneInputRef}
+            defaultValue={phone}
+            defaultCode="CI"
+            layout="first"
+            onChangeFormattedText={applyPhoneChange}
+            containerStyle={styles.phoneInputContainer}
+            textContainerStyle={styles.phoneTextContainer}
+            textInputStyle={styles.phoneTextInput}
+            codeTextStyle={styles.phoneCodeText}
+            filterProps={phoneCountryPickerProps.filterProps}
+            countryPickerProps={phoneCountryPickerProps}
+            placeholder="Numéro de téléphone"
+            textInputProps={{
+              onFocus: () => {
+                setTimeout(
+                  () => scrollRef.current?.scrollToEnd({ animated: true }),
+                  100,
+                );
+              },
+            }}
+          />
+          {checkout?.billingAddress?.phone ? (
+            <Text style={styles.prefillHint}>
+              Pré-rempli depuis la fiche contact
+            </Text>
+          ) : null}
+
+          <RNView style={styles.tipBox}>
+            <MaterialCommunityIcons
+              name="lightbulb-on-outline"
+              size={18}
+              color={colors.primary}
+            />
+            <RNView style={styles.tipCopy}>
+              <Text style={styles.tipTitle}>Comment valider ?</Text>
+              <Text style={styles.tipBody}>
+                {selectedMeta?.tip ||
+                  "Vous recevrez une notification ou un SMS d'autorisation sur votre téléphone."}
+              </Text>
+            </RNView>
+          </RNView>
+
+          <Pressable
+            onPress={onPay}
+            disabled={busy}
+            style={[styles.payButton, busy && styles.payButtonDisabled]}
+            accessibilityRole="button"
+            accessibilityLabel={ctaLabel}
+          >
+            {busy ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <RNView style={styles.payButtonInner}>
+                <Ionicons name="lock-closed" size={16} color="#FFFFFF" />
+                <Text style={styles.payButtonText}>{ctaLabel}</Text>
+              </RNView>
+            )}
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <Modal
+        visible={waiting}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={cancelWaiting}
+      >
+        <RNView style={styles.waitOverlay}>
+          <RNView style={styles.waitCard}>
+            {selectedMeta ? (
+              <Image
+                source={selectedMeta.logo}
+                style={styles.waitLogo}
+                resizeMode="contain"
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name="cellphone-check"
+                size={40}
+                color={colors.primary}
+              />
+            )}
+            <Text style={styles.waitEyebrow}>Confirmation requise</Text>
+            <Text style={styles.waitTitle}>
+              Demande
+              {amountLabel ? ` de ${amountLabel}` : ""} envoyée vers{" "}
+              {selectedMeta?.shortLabel || "Mobile Money"}
+            </Text>
+            <Text style={styles.waitPhone}>{maskCiPhone(phone)}</Text>
+            <Text style={styles.waitBody}>
+              {provider === "wave"
+                ? "Veuillez ouvrir l'application Wave (ou valider la notification) pour terminer."
+                : displayText ||
+                  "Veuillez valider la transaction sur votre téléphone pour terminer."}
+            </Text>
+
+            <RNView style={styles.waitTimer}>
+              <Ionicons name="hourglass-outline" size={16} color="#606060" />
+              <Text style={styles.waitTimerText}>
+                Attente… {formatCountdown(secondsLeft)}
+              </Text>
+            </RNView>
+
+            {(initResult.loading ||
+              processResult.loading ||
+              completingCheckout) && (
+              <ActivityIndicator
+                color={colors.primary}
+                style={{ marginTop: 8 }}
+              />
+            )}
+
+            <Pressable
+              onPress={onConfirmPaid}
+              disabled={busy}
+              style={styles.waitConfirmBtn}
+            >
+              <Text style={styles.waitConfirmText}>
+                J&apos;ai confirmé le paiement
+              </Text>
+            </Pressable>
+
+            <Pressable onPress={cancelWaiting} style={styles.cancelLink}>
+              <Text style={styles.cancelText}>Annuler</Text>
+            </Pressable>
+          </RNView>
+        </RNView>
+      </Modal>
+    </>
   );
 };
 
@@ -404,22 +545,23 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-  hint: {
-    textAlign: "center",
+  sectionLabel: {
     fontSize: 13,
     color: "#606060",
-    marginBottom: 14,
-    fontFamily: "TTNormsPro-Regular",
-  },
-  fieldLabel: {
-    fontSize: 12,
-    color: "#606060",
-    marginBottom: 8,
     fontFamily: "TTNormsPro-Bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+    marginBottom: 4,
+  },
+  sectionHint: {
+    fontSize: 14,
+    color: "#404040",
+    fontFamily: "TTNormsPro-Regular",
+    marginBottom: 12,
   },
   providerList: {
     gap: 10,
-    marginBottom: 16,
+    marginBottom: 18,
   },
   providerRow: {
     flexDirection: "row",
@@ -428,17 +570,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 14,
-    backgroundColor: "#F1F1F1",
+    backgroundColor: "#F7F7F8",
     borderWidth: 1.5,
-    borderColor: "#D7D8DB",
+    borderColor: "#E2E3E7",
   },
   providerRowSelected: {
     backgroundColor: "#FFFFFF",
-    borderColor: colors.green,
+    borderColor: colors.primary,
   },
   providerLogoBox: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 10,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
@@ -448,27 +590,32 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   providerLogo: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
   },
   providerName: {
     flex: 1,
     fontSize: 15,
-    color: "#000",
+    color: "#111111",
     fontFamily: "TTNormsPro-Bold",
   },
   providerNameSelectedText: {
-    color: "#000",
+    color: "#111111",
+  },
+  fieldLabel: {
+    fontSize: 13,
+    color: "#606060",
+    marginBottom: 8,
+    fontFamily: "TTNormsPro-Regular",
   },
   phoneInputContainer: {
     width: "100%",
     height: 56,
-    backgroundColor: "#F8F8F8",
+    backgroundColor: "#F7F7F8",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#D7D8DB",
     overflow: "hidden",
-    marginBottom: 16,
   },
   phoneTextContainer: {
     backgroundColor: "transparent",
@@ -476,58 +623,150 @@ const styles = StyleSheet.create({
   },
   phoneTextInput: {
     fontSize: 16,
-    color: "#000",
+    color: "#111111",
     fontFamily: "TTNormsPro-Regular",
   },
   phoneCodeText: {
     fontSize: 16,
     fontFamily: "TTNormsPro-Bold",
-    color: "#000",
+    color: "#111111",
   },
-  button: {
-    backgroundColor: colors.green,
-    borderRadius: 12,
-    marginTop: 4,
-    elevation: 0,
+  prefillHint: {
+    marginTop: 8,
+    marginBottom: 4,
+    fontSize: 12,
+    color: "#606060",
+    fontFamily: "TTNormsPro-Regular",
   },
-  content: { height: 54 },
-  label: {
-    fontSize: 15,
-    fontWeight: "bold",
-    letterSpacing: 0.5,
-  },
-  waitBox: {
-    alignItems: "center",
-    paddingVertical: 8,
+  tipBox: {
+    flexDirection: "row",
     gap: 10,
+    marginTop: 16,
+    marginBottom: 18,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#FFF7F5",
+    borderWidth: 1,
+    borderColor: "#FFD4CF",
+  },
+  tipCopy: { flex: 1 },
+  tipTitle: {
+    fontSize: 13,
+    color: "#111111",
+    fontFamily: "TTNormsPro-Bold",
+    marginBottom: 4,
+  },
+  tipBody: {
+    fontSize: 12,
+    color: "#606060",
+    fontFamily: "TTNormsPro-Regular",
+    lineHeight: 17,
+  },
+  payButton: {
+    backgroundColor: colors.primary,
+    minHeight: 54,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 14,
+  },
+  payButtonDisabled: { opacity: 0.7 },
+  payButtonInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  payButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "TTNormsPro-Bold",
+    textAlign: "center",
+    flexShrink: 1,
+  },
+  waitOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  waitCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingVertical: 28,
+    paddingHorizontal: 22,
+    alignItems: "center",
   },
   waitLogo: {
     width: 56,
     height: 56,
-    marginBottom: 4,
+    marginBottom: 12,
+  },
+  waitEyebrow: {
+    fontSize: 12,
+    color: colors.primary,
+    fontFamily: "TTNormsPro-Bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginBottom: 8,
   },
   waitTitle: {
     fontSize: 16,
     fontFamily: "TTNormsPro-Bold",
-    color: "#000",
-    marginTop: 8,
+    color: "#111111",
     textAlign: "center",
+    lineHeight: 22,
+  },
+  waitPhone: {
+    marginTop: 8,
+    fontSize: 15,
+    color: "#111111",
+    fontFamily: "TTNormsPro-Bold",
   },
   waitBody: {
+    marginTop: 12,
     fontSize: 14,
     color: "#606060",
     fontFamily: "TTNormsPro-Regular",
     textAlign: "center",
     lineHeight: 20,
   },
-  waitHint: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    fontFamily: "TTNormsPro-Regular",
-    textAlign: "center",
-    marginBottom: 8,
+  waitTimer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#F7F7F8",
+    borderWidth: 1,
+    borderColor: "#E8E9EC",
   },
-  cancelLink: { marginTop: 8, padding: 8 },
+  waitTimerText: {
+    fontSize: 13,
+    color: "#606060",
+    fontFamily: "TTNormsPro-Bold",
+  },
+  waitConfirmBtn: {
+    marginTop: 18,
+    width: "100%",
+    minHeight: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#D7D8DB",
+    backgroundColor: "#F7F7F8",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  waitConfirmText: {
+    fontSize: 14,
+    color: "#111111",
+    fontFamily: "TTNormsPro-Bold",
+  },
+  cancelLink: { marginTop: 12, padding: 8 },
   cancelText: {
     color: "#606060",
     fontFamily: "TTNormsPro-Bold",

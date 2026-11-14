@@ -46,3 +46,7 @@ export function getPaymentMethodMeta(gatewayId: string): PaymentMethodMeta {
     logo: require("../../../assets/images/logo/paystack.png"),
   };
 }
+
+export function paystackPreferred(gatewayId: string): boolean {
+  return gatewayId === paystackGatewayId || gatewayId.includes("paystack");
+}

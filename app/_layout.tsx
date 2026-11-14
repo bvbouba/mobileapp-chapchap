@@ -26,6 +26,7 @@ import TripResultHeader from "../components/layout/TripResultHeader";
 import { ConfirmationHeader } from "../components/layout/Confirmation.Header";
 import { AuthProvider } from "../lib/providers/authProvider";
 import { BiometricSessionUnlock } from "../components/account/BiometricSessionUnlock";
+import { CustomerOrientationLock } from "../components/layout/CustomerOrientationLock";
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -99,6 +100,7 @@ function RootLayoutNav() {
     <>
       <ApolloProvider client={apolloClient}>
       <AuthProvider>
+        <CustomerOrientationLock />
         <BiometricSessionUnlock />
         <ProductsProvider>
           <CartProvider>
@@ -140,12 +142,33 @@ function RootLayoutNav() {
                     <Stack.Screen name="billingAddress" options={baseHeaderProps} />
                     <Stack.Screen name="shippingMethods" options={baseHeaderProps} />
                     <Stack.Screen name="orderDetails/[id]" options={baseHeaderProps} />
-                    <Stack.Screen name="orderConfirmation"  options={{ ...baseHeaderProps,
-                      header: () => <ConfirmationHeader />,
-                      headerTitle: "Confirmation", }}
-                  
+                    <Stack.Screen
+                      name="orderConfirmation"
+                      options={{
+                        ...baseHeaderProps,
+                        header: () => <ConfirmationHeader />,
+                        headerTitle: "Confirmation",
+                        headerShadowVisible: false,
+                        contentStyle: { backgroundColor: "#F7F7F8" },
+                        statusBarStyle: "dark",
+                        statusBarBackgroundColor: "#FFFFFF",
+                      }}
                     />
                     <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+                    <Stack.Screen
+                      name="web-content"
+                      options={{
+                        headerShown: false,
+                        title: "ChapChap",
+                      }}
+                    />
+                    <Stack.Screen
+                      name="account-security"
+                      options={{
+                        headerShown: false,
+                        title: "Sécurité & Confidentialité",
+                      }}
+                    />
                   </Stack>
                 </ThemeProvider>
                 </PaperProvider>

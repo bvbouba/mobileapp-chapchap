@@ -121,8 +121,57 @@ const CANCELLED_ORDER_STATUSES = new Set([
   "PARTIALLY_RETURNED",
 ]);
 
+/** Order metadata set by staff refund / transfer cancel flows. */
+export const TICKET_STATUS_KEY = "ticket_status";
+const CANCELLED_TICKET_STATUSES = new Set([
+  "CANCELLED_AND_REFUNDED",
+  "CANCELLED_AND_TRANSFERRED",
+  "CANCEL_REQUESTED",
+]);
+
+type MetaRow = { key?: string | null; value?: string | null };
+type FulfillmentStatusRow = { status?: string | null };
+
+function metaValue(metadata: MetaRow[] | null | undefined, key: string): string {
+  const want = key.toLowerCase();
+  for (const m of metadata ?? []) {
+    if ((m.key ?? "").toLowerCase() === want) return (m.value ?? "").trim();
+  }
+  return "";
+}
+
 /**
- * Historique when trip arrived/cancelled, order cancelled/refunded,
+ * True when this customer's ticket/booking was cancelled — not when the trip
+ * itself is still scheduled. Staff "Annuler la réservation" cancels fulfillments
+ * and leaves the order UNFULFILLED; bare UNFULFILLED without prior fulfillments
+ * means not yet validated and is not cancelled.
+ */
+export function isBookingCancelled(args: {
+  orderStatus?: string | null;
+  orderMetadata?: MetaRow[] | null;
+  fulfillments?: FulfillmentStatusRow[] | null;
+}): boolean {
+  const orderStatus = (args.orderStatus ?? "").trim().toUpperCase();
+  if (CANCELLED_ORDER_STATUSES.has(orderStatus)) return true;
+
+  const ticketStatus = metaValue(args.orderMetadata, TICKET_STATUS_KEY).toUpperCase();
+  if (CANCELLED_TICKET_STATUSES.has(ticketStatus)) return true;
+
+  const fulfillments = args.fulfillments ?? [];
+  if (fulfillments.length === 0) return false;
+  let hasCanceled = false;
+  let hasActive = false;
+  for (const f of fulfillments) {
+    const s = (f.status ?? "").trim().toUpperCase();
+    if (!s) continue;
+    if (s === "CANCELED" || s === "CANCELLED") hasCanceled = true;
+    else hasActive = true;
+  }
+  return hasCanceled && !hasActive;
+}
+
+/**
+ * Historique when trip arrived/cancelled, booking cancelled,
  * or now is past effective departure + estimated duration.
  */
 export function isTripInHistorique(args: {
@@ -132,12 +181,21 @@ export function isTripInHistorique(args: {
   isDelayed: boolean;
   estimatedDepartureHm: string;
   orderStatus?: string | null;
+  orderMetadata?: MetaRow[] | null;
+  fulfillments?: FulfillmentStatusRow[] | null;
   now?: Date;
 }): boolean {
   const now = args.now ?? new Date();
   if (args.tripStatus === "ARRIVED" || args.tripStatus === "CANCELLED") return true;
-  const orderStatus = (args.orderStatus ?? "").trim().toUpperCase();
-  if (CANCELLED_ORDER_STATUSES.has(orderStatus)) return true;
+  if (
+    isBookingCancelled({
+      orderStatus: args.orderStatus,
+      orderMetadata: args.orderMetadata,
+      fulfillments: args.fulfillments,
+    })
+  ) {
+    return true;
+  }
   if (!args.scheduledDeparture) return false;
   const effective = resolveEffectiveDeparture(
     args.scheduledDeparture,
@@ -185,13 +243,29 @@ export function readTripDelayMeta(
   return { isDelayed, estimatedDeparture };
 }
 
+export type TripStatusBadgeOrderContext = {
+  orderStatus?: string | null;
+  orderMetadata?: MetaRow[] | null;
+  fulfillments?: FulfillmentStatusRow[] | null;
+};
+
 /**
- * Badge for customer UI: delayed trips show "En retard" instead of "Programmé"
- * while still SCHEDULED / early boarding. Later statuses keep their own label.
+ * Badge for customer UI. Booking cancel beats trip lifecycle (so UNFULFILLED
+ * after staff cancel shows "Annulé", not "Programmé"). Delayed trips show
+ * "En retard" while still SCHEDULED / early boarding.
  */
 export function getTripStatusBadge(
   metadata: Array<{ key: string; value: string }> | null | undefined,
+  orderContext?: TripStatusBadgeOrderContext,
 ): TripStatusBadge {
+  if (orderContext && isBookingCancelled(orderContext)) {
+    return {
+      ...TRIP_STATUS_CONFIG.CANCELLED,
+      isDelayed: false,
+      status: "CANCELLED",
+    };
+  }
+
   const status = readTripStatus(metadata);
   const delay = readTripDelayMeta(metadata);
   const base = TRIP_STATUS_CONFIG[status];

@@ -7,6 +7,7 @@ import {
   Modal,
   StatusBar,
   RefreshControl,
+  Image,
 } from "react-native";
 import { Text, colors } from "../../components/Themed";
 import { useOrderContext } from "../../context/useOrderContext";
@@ -14,16 +15,35 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { OrderFragment, useGetOrderByIdLazyQuery } from "../../saleor/api.generated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { TicketModalContent } from "../../components/orders/TicketModalContent";
-import { getTripInformation } from "../../utils/attribute";
+import {
+  getOperatorChannelSlug,
+  getTripInformation,
+} from "../../utils/attribute";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PLATFORM_FEE_PRODUCT_SLUG } from "../../utils/ensurePlatformFeeInCheckout";
 import { getConfirmationCode } from "../../utils/generateShortCode";
 import { getTripStatusBadge } from "../../lib/tripStatus";
+import {
+  formatPaymentStatusLabelFr,
+  getBookingBadge,
+  isTicketUnlocked,
+} from "../../lib/bookingStatus";
+import { GuichetCountdownBanner } from "../../components/orders/GuichetCountdownBanner";
 import { formatTripNumberLabel } from "../../utils/tripNumber";
+import { getPassengerDisplayNames } from "../../utils/passengersMetadata";
+import {
+  resolveProductLogoUrl,
+  useOperatorLogo,
+} from "../../hooks/useOperatorLogo";
+import { useDeviceLayout } from "../../lib/layout/deviceLayout";
+import { shareTicketPdf } from "../../utils/ticketPdf";
 
 type OrderWithPayment = OrderFragment & {
   isPaid?: boolean | null;
+  paymentStatus?: string | null;
   paymentStatusDisplay?: string | null;
+  authorizeStatus?: string | null;
+  chargeStatus?: string | null;
 };
 
 function metaValue(
@@ -37,14 +57,6 @@ function metaValue(
   return "";
 }
 
-function formatPassengerName(block: string): string {
-  const [lastName, firstName] = block.split(",");
-  if (firstName?.trim() && lastName?.trim()) {
-    return `${firstName.trim()} ${lastName.trim()}`;
-  }
-  return block.trim() || "Passager";
-}
-
 function formatMoney(amount: number, currency: string): string {
   const formatted = new Intl.NumberFormat("fr-FR", {
     maximumFractionDigits: 0,
@@ -52,6 +64,24 @@ function formatMoney(amount: number, currency: string): string {
   const cur = (currency || "").toUpperCase();
   if (cur === "XOF" || cur === "CFA" || cur === "FCFA") return `${formatted} FCFA`;
   return `${formatted} ${currency}`;
+}
+
+function formatPurchaseDate(created: string | Date | null | undefined): string {
+  if (!created) return "—";
+  const d = created instanceof Date ? created : new Date(created);
+  if (Number.isNaN(d.getTime())) return "—";
+  const raw = d
+    .toLocaleDateString("fr-FR", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    })
+    .replace(/\./g, "");
+  return raw
+    .split(" ")
+    .map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1) : part))
+    .join(" ");
 }
 
 function paymentMethodLabel(metadata: Array<{ key: string; value: string }>): string {
@@ -77,15 +107,14 @@ function paymentMethodLabel(metadata: Array<{ key: string; value: string }>): st
 
 function paymentStatusLine(order: OrderWithPayment): string {
   const method = paymentMethodLabel(order.metadata);
-  const paid =
-    order.isPaid === true ||
-    (order.paymentStatusDisplay ?? "").toLowerCase().includes("fully") ||
-    (order.paymentStatusDisplay ?? "").toLowerCase().includes("paid") ||
-    (order.status ?? "").toUpperCase() === "FULFILLED";
-
-  const statusLabel = paid
-    ? "Payé"
-    : order.paymentStatusDisplay?.trim() || "En attente";
+  const statusLabel = formatPaymentStatusLabelFr({
+    isPaid: order.isPaid,
+    paymentStatus: order.paymentStatus,
+    paymentStatusDisplay: order.paymentStatusDisplay,
+    authorizeStatus: order.authorizeStatus,
+    chargeStatus: order.chargeStatus,
+    metadata: order.metadata,
+  });
 
   return method ? `${statusLabel} (${method})` : statusLabel;
 }
@@ -94,10 +123,12 @@ const OrderDetailsPage = () => {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { useTabletLayout, horizontalGutter } = useDeviceLayout();
   const [orderCache, setOrderCache] = useState<OrderWithPayment | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
+  const [sharingPdf, setSharingPdf] = useState(false);
   const { orders } = useOrderContext();
   const [getOrderById] = useGetOrderByIdLazyQuery();
 
@@ -132,9 +163,35 @@ const OrderDetailsPage = () => {
       ) ?? orderCache.lines[0];
     const attrs = ticketLine?.variant?.attributes || [];
     const info = getTripInformation({ attributes: attrs });
-    const statusCfg = getTripStatusBadge(ticketLine?.variant?.metadata ?? []);
-    return { ticketLine, info, statusCfg };
+    const statusCfg = getTripStatusBadge(ticketLine?.variant?.metadata ?? [], {
+      orderStatus: orderCache.status,
+      orderMetadata: orderCache.metadata,
+      fulfillments: orderCache.fulfillments,
+    });
+    return { ticketLine, info, statusCfg, attrs };
   }, [orderCache]);
+
+  const operatorLogoUrl = useOperatorLogo({
+    productLogoUrl: resolveProductLogoUrl(trip?.ticketLine?.variant?.product),
+    operatorChannelSlug: getOperatorChannelSlug(trip?.attrs ?? []),
+  });
+
+  const travelDateLabel = useMemo(() => {
+    const departureDate = trip?.info.departureDate;
+    if (!departureDate) return trip?.info.formattedDate || "";
+    const raw = departureDate
+      .toLocaleDateString("fr-FR", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+      .replace(/\./g, "");
+    return raw
+      .split(" ")
+      .map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1) : part))
+      .join(" ");
+  }, [trip?.info.departureDate, trip?.info.formattedDate]);
 
   if (loading) {
     return (
@@ -151,7 +208,7 @@ const OrderDetailsPage = () => {
     );
   }
 
-  const { info, statusCfg, ticketLine } = trip;
+  const { info, statusCfg: tripStatusCfg, ticketLine } = trip;
   const confirmationCode = getConfirmationCode(orderCache);
   const tripIdLabel = ticketLine?.variant?.id
     ? formatTripNumberLabel(ticketLine.variant.id)
@@ -159,17 +216,74 @@ const OrderDetailsPage = () => {
   const ticketCount = orderCache.lines
     .filter((line) => line.variant?.product?.slug !== PLATFORM_FEE_PRODUCT_SLUG)
     .reduce((sum, line) => sum + line.quantity, 0);
-  const namedPassengers = (orderCache.customerNote || "")
-    .split(";")
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map(formatPassengerName);
+  const namedPassengers = getPassengerDisplayNames({
+    metadata: orderCache.metadata,
+    customerNote: orderCache.customerNote,
+  });
   const passengers =
     namedPassengers.length > 0
       ? namedPassengers
       : Array.from({ length: Math.max(ticketCount, 1) }, (_, i) =>
           ticketCount > 1 ? `Passager ${i + 1}` : "Passager",
         );
+
+  const ticketReady = isTicketUnlocked(orderCache.status);
+  const paidAmountLabel = formatMoney(
+    orderCache.total.gross.amount,
+    orderCache.total.gross.currency,
+  );
+  const bookingBadge = getBookingBadge({
+    orderStatus: orderCache.status,
+    isPaid: orderCache.isPaid,
+    paymentStatus: orderCache.paymentStatus,
+    paymentStatusDisplay: orderCache.paymentStatusDisplay,
+    authorizeStatus: orderCache.authorizeStatus,
+    chargeStatus: orderCache.chargeStatus,
+    metadata: orderCache.metadata,
+    fulfillments: orderCache.fulfillments,
+    paidAmountLabel,
+  });
+  const statusCfg =
+    bookingBadge.phase === "issued" &&
+    tripStatusCfg.label !== "Programmé" &&
+    tripStatusCfg.status !== "SCHEDULED"
+      ? {
+          label: tripStatusCfg.label,
+          color: tripStatusCfg.color,
+          bg: tripStatusCfg.bg,
+          border: tripStatusCfg.border,
+        }
+      : bookingBadge.phase === "boarded"
+        ? bookingBadge
+        : bookingBadge;
+
+  const onSharePdf = async () => {
+    if (!ticketReady || sharingPdf) return;
+    setSharingPdf(true);
+    try {
+      await shareTicketPdf({
+        orderId: orderCache.id,
+        orderNumber: orderCache.number,
+        confirmationCode,
+        departureCity: info.departureCity,
+        arrivalCity: info.arrivalCity,
+        departureStation: info.departureStation,
+        arrivalStation: info.arrivalStation,
+        departureDate: info.departureDate,
+        departureTimeStr: info.departureTimeStr,
+        arrivalTimeStr: info.arrivalTimeStr,
+        company: info.company,
+        passengers,
+        tripIdLabel,
+        totalLabel: formatMoney(
+          orderCache.total.gross.amount,
+          orderCache.total.gross.currency,
+        ),
+      });
+    } finally {
+      setSharingPdf(false);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F1F1F1" }}>
@@ -190,6 +304,12 @@ const OrderDetailsPage = () => {
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: 32 + Math.max(insets.bottom, 24) },
+          useTabletLayout && {
+            maxWidth: 900,
+            alignSelf: "center",
+            width: "100%",
+            paddingHorizontal: horizontalGutter,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -204,9 +324,27 @@ const OrderDetailsPage = () => {
         {/* Header: operator + status + ref */}
         <View style={styles.card}>
           <View style={styles.heroHeader}>
-            <Text style={styles.companyName} numberOfLines={1}>
-              {info.company || "Transport"}
-            </Text>
+            <View style={styles.companyRow}>
+              {operatorLogoUrl ? (
+                <Image
+                  source={{ uri: operatorLogoUrl }}
+                  style={styles.companyLogo}
+                  resizeMode="contain"
+                  accessibilityIgnoresInvertColors
+                />
+              ) : (
+                <View style={styles.companyLogoFallback}>
+                  <MaterialCommunityIcons
+                    name="office-building-outline"
+                    size={18}
+                    color={colors.green}
+                  />
+                </View>
+              )}
+              <Text style={styles.companyName} numberOfLines={1}>
+                {info.company || "Transport"}
+              </Text>
+            </View>
             <View
               style={[
                 styles.statusBadge,
@@ -234,19 +372,111 @@ const OrderDetailsPage = () => {
           ) : null}
         </View>
 
-        {/* Primary CTA */}
+        {/* Primary CTA — locked until company fulfills the order */}
         <Pressable
-          style={({ pressed }) => [styles.ticketButton, pressed && { opacity: 0.92 }]}
-          onPress={() => setModalVisible(true)}
-          accessibilityLabel="Afficher mon billet ou QR code"
+          style={({ pressed }) => [
+            styles.ticketButton,
+            !ticketReady && styles.ticketButtonLocked,
+            ticketReady && pressed && { opacity: 0.92 },
+          ]}
+          onPress={() => {
+            if (!ticketReady) return;
+            setModalVisible(true);
+          }}
+          disabled={!ticketReady}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !ticketReady }}
+          accessibilityLabel={
+            ticketReady
+              ? "Afficher mon billet ou QR code"
+              : bookingBadge.phase === "awaiting_guichet"
+                ? "Billet en attente de validation par le guichet"
+                : "Billet verrouillé jusqu'à confirmation de la compagnie"
+          }
         >
-          <MaterialCommunityIcons name="cellphone" size={22} color="#FFFFFF" />
-          <Text style={styles.ticketButtonText}>Afficher mon billet / QR code</Text>
+          <MaterialCommunityIcons
+            name={
+              ticketReady
+                ? "cellphone"
+                : bookingBadge.phase === "awaiting_guichet"
+                  ? "store-clock-outline"
+                  : "lock-outline"
+            }
+            size={22}
+            color="#FFFFFF"
+          />
+          <Text style={styles.ticketButtonText}>
+            {ticketReady
+              ? "Afficher mon billet / QR code"
+              : bookingBadge.phase === "awaiting_guichet"
+                ? "En attente de validation guichet"
+                : "Billet en attente de confirmation"}
+          </Text>
         </Pressable>
+        {!ticketReady ? (
+          <Text style={styles.ticketLockedHint}>
+            {bookingBadge.message ||
+              `Votre billet et QR code seront disponibles dès que ${
+                info.company || "la compagnie"
+              } aura validé votre réservation.`}
+          </Text>
+        ) : (
+          <>
+            <Pressable
+              style={({ pressed }) => [
+                styles.whatsappButton,
+                (sharingPdf || pressed) && { opacity: 0.9 },
+              ]}
+              onPress={() => void onSharePdf()}
+              disabled={sharingPdf}
+              accessibilityRole="button"
+              accessibilityLabel="Partager le billet PDF sur WhatsApp"
+            >
+              <MaterialCommunityIcons name="whatsapp" size={22} color="#FFFFFF" />
+              <View style={styles.whatsappButtonTextWrap}>
+                <Text style={styles.whatsappButtonText}>
+                  {sharingPdf ? "Préparation du PDF…" : "Partager le billet PDF"}
+                </Text>
+                <Text style={styles.whatsappButtonHint}>
+                  Ouvre WhatsApp (ou autre) avec le PDF du billet
+                </Text>
+              </View>
+            </Pressable>
+          </>
+        )}
+
+        {bookingBadge.phase === "awaiting_guichet" ? (
+          <GuichetCountdownBanner
+            metadata={orderCache.metadata}
+            paidAmountLabel={paidAmountLabel}
+          />
+        ) : null}
+
+        {bookingBadge.phase === "cancelled" ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.searchAgainButton,
+              pressed && { opacity: 0.92 },
+            ]}
+            onPress={() => router.push("/")}
+            accessibilityRole="button"
+            accessibilityLabel="Rechercher un autre car"
+          >
+            <MaterialCommunityIcons name="magnify" size={20} color="#FFFFFF" />
+            <Text style={styles.searchAgainText}>Rechercher un autre car</Text>
+          </Pressable>
+        ) : null}
 
         {/* Itinerary */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Itinéraire</Text>
+
+          {travelDateLabel ? (
+            <View style={styles.dateRow}>
+              <MaterialCommunityIcons name="calendar" size={16} color="#606060" />
+              <Text style={styles.dateText}>{travelDateLabel}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.stopBlock}>
             <View style={styles.stopHeadline}>
@@ -318,6 +548,13 @@ const OrderDetailsPage = () => {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Paiement</Text>
           <View style={styles.paymentRow}>
+            <MaterialCommunityIcons name="calendar-check-outline" size={18} color="#606060" />
+            <Text style={styles.paymentLabel}>Achat:</Text>
+            <Text style={styles.paymentValue}>
+              {formatPurchaseDate(orderCache.created)}
+            </Text>
+          </View>
+          <View style={[styles.paymentRow, { marginTop: 10 }]}>
             <MaterialCommunityIcons name="credit-card-outline" size={18} color="#606060" />
             <Text style={styles.paymentLabel}>Statut:</Text>
             <Text style={styles.paymentValue}>{paymentStatusLine(orderCache)}</Text>
@@ -334,7 +571,7 @@ const OrderDetailsPage = () => {
 
       <Modal
         animationType="slide"
-        visible={isModalVisible}
+        visible={isModalVisible && ticketReady}
         onRequestClose={() => setModalVisible(false)}
         statusBarTranslucent
       >
@@ -351,6 +588,27 @@ const OrderDetailsPage = () => {
             ]}
           >
             <TicketModalContent order={orderCache} />
+            <Pressable
+              style={({ pressed }) => [
+                styles.whatsappButton,
+                { marginTop: 16 },
+                (sharingPdf || pressed) && { opacity: 0.9 },
+              ]}
+              onPress={() => void onSharePdf()}
+              disabled={sharingPdf}
+              accessibilityRole="button"
+              accessibilityLabel="Partager le billet PDF sur WhatsApp"
+            >
+              <MaterialCommunityIcons name="whatsapp" size={22} color="#FFFFFF" />
+              <View style={styles.whatsappButtonTextWrap}>
+                <Text style={styles.whatsappButtonText}>
+                  {sharingPdf ? "Préparation du PDF…" : "Partager le billet PDF"}
+                </Text>
+                <Text style={styles.whatsappButtonHint}>
+                  Ouvre WhatsApp (ou autre) avec le PDF du billet
+                </Text>
+              </View>
+            </Pressable>
             <Text style={styles.modalFooterText}>Présentez le QR code au contrôle</Text>
           </ScrollView>
         </View>
@@ -408,6 +666,32 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
   },
+  companyRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0,
+    paddingRight: 4,
+  },
+  companyLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#F1F1F1",
+    borderWidth: 1,
+    borderColor: "#E8E9EC",
+  },
+  companyLogoFallback: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#F1F5EB",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#DCE8C8",
+  },
   companyName: {
     flex: 1,
     fontSize: 16,
@@ -438,6 +722,17 @@ const styles = StyleSheet.create({
     fontFamily: "TTNormsPro-Bold",
     color: "#606060",
   },
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 14,
+  },
+  dateText: {
+    fontSize: 14,
+    fontFamily: "TTNormsPro-Bold",
+    color: "#303030",
+  },
   ticketButton: {
     backgroundColor: colors.red,
     flexDirection: "row",
@@ -449,12 +744,70 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: 14,
   },
+  ticketButtonLocked: {
+    backgroundColor: "#9CA3AF",
+    marginBottom: 8,
+  },
   ticketButtonText: {
     color: "#FFFFFF",
     fontSize: 14,
     fontFamily: "TTNormsPro-Bold",
     textTransform: "uppercase",
     letterSpacing: 0.2,
+    flexShrink: 1,
+    textAlign: "center",
+  },
+  ticketLockedHint: {
+    fontSize: 13,
+    color: "#606060",
+    fontFamily: "TTNormsPro-Regular",
+    lineHeight: 18,
+    textAlign: "center",
+    marginBottom: 14,
+    paddingHorizontal: 8,
+  },
+  whatsappButton: {
+    backgroundColor: "#25D366",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    marginBottom: 10,
+  },
+  whatsappButtonTextWrap: {
+    flexShrink: 1,
+  },
+  whatsappButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: "TTNormsPro-Bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.2,
+  },
+  whatsappButtonHint: {
+    marginTop: 2,
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 11,
+    fontFamily: "TTNormsPro-Regular",
+  },
+  searchAgainButton: {
+    backgroundColor: colors.primary,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    marginBottom: 14,
+  },
+  searchAgainText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: "TTNormsPro-Bold",
   },
   sectionTitle: {
     fontSize: 12,

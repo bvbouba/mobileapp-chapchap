@@ -1,14 +1,14 @@
-import { FC, useCallback, useMemo, useRef, useState } from "react";
+import { FC, useCallback, useMemo, useRef, useState, type ComponentRef } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   FlatList,
   Pressable,
   RefreshControl,
   StatusBar,
   StyleSheet,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -25,8 +25,8 @@ import {
   readTripDelayMeta,
   readTripStatus,
 } from "../../lib/tripStatus";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+import { useDeviceLayout } from "../../lib/layout/deviceLayout";
+import { TabletContentShell } from "../layout/TabletSplitView";
 
 type TabType = "upcoming" | "past";
 
@@ -63,6 +63,8 @@ function isOrderHistorique(order: OrderFragment, now: Date): boolean {
     isDelayed: delay.isDelayed,
     estimatedDepartureHm: delay.estimatedDeparture,
     orderStatus: order.status,
+    orderMetadata: order.metadata,
+    fulfillments: order.fulfillments,
     now,
   });
 }
@@ -71,9 +73,11 @@ const OrdersList: FC = () => {
   const { orders, syncMyOrders, syncing, refreshOrders } = useOrderContext();
   const { authenticated } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
+  const { useTabletLayout, horizontalGutter } = useDeviceLayout();
   const [activeTab, setActiveTab] = useState<TabType>("upcoming");
   const [refreshing, setRefreshing] = useState(false);
-  const scrollRef = useRef<FlatList>(null);
+  const scrollRef = useRef<ComponentRef<typeof FlatList>>(null);
 
   const { upcomingOrders, pastOrders } = useMemo(() => {
     const now = new Date();
@@ -175,14 +179,31 @@ const OrdersList: FC = () => {
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="dark-content" backgroundColor="#F1F1F1" />
-      <View style={[styles.header, { paddingTop: insets.top + 18 }]}>
-        <Text style={styles.title}>Mes voyages</Text>
+      <TabletContentShell constrain={false} style={styles.shellFlush}>
+      <View
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 18 },
+          useTabletLayout && { paddingHorizontal: horizontalGutter },
+        ]}
+      >
+        <Text style={styles.title}>Mes Voyages</Text>
         <Text style={styles.subtitle}>
-          Retrouvez vos trajets à venir et vos anciennes réservations.
+          Retrouvez tous vos billets de car — à venir et historique.
         </Text>
       </View>
 
-      <View style={styles.tabsWrapper}>
+      <View
+        style={[
+          styles.tabsWrapper,
+          useTabletLayout && {
+            marginHorizontal: horizontalGutter,
+            maxWidth: 520,
+            alignSelf: "center",
+            width: "100%",
+          },
+        ]}
+      >
         <Pressable
           onPress={() => handleTabPress("upcoming")}
           style={[styles.tabButton, activeTab === "upcoming" && styles.activeTabButton]}
@@ -207,7 +228,7 @@ const OrdersList: FC = () => {
               activeTab === "past" ? styles.activeTabText : styles.inactiveTabText,
             ]}
           >
-            Historique
+            Historique {pastOrders.length > 0 ? `(${pastOrders.length})` : ""}
           </Text>
         </Pressable>
       </View>
@@ -225,11 +246,25 @@ const OrdersList: FC = () => {
           index,
         })}
         renderItem={({ item, index }) => (
-          <View style={{ width: SCREEN_WIDTH }}>
+          <View
+            style={{
+              width: SCREEN_WIDTH,
+              paddingHorizontal: useTabletLayout ? horizontalGutter : 0,
+            }}
+          >
             <FlatList
               data={item}
               keyExtractor={(order) => order.id}
-              renderItem={({ item: order }) => <OrderListItem order={order} />}
+              numColumns={useTabletLayout ? 2 : 1}
+              key={useTabletLayout ? "tablet" : "phone"}
+              columnWrapperStyle={
+                useTabletLayout ? styles.tabletRow : undefined
+              }
+              renderItem={({ item: order }) => (
+                <View style={useTabletLayout ? styles.tabletCard : undefined}>
+                  <OrderListItem order={order} />
+                </View>
+              )}
               refreshControl={listRefreshControl}
               contentContainerStyle={[
                 styles.listContent,
@@ -264,6 +299,7 @@ const OrdersList: FC = () => {
           </View>
         )}
       />
+      </TabletContentShell>
     </View>
   );
 };
@@ -272,6 +308,10 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     backgroundColor: "#F1F1F1",
+  },
+  /** Horizontal FlatList pages use full window width; avoid shell gutter double-inset. */
+  shellFlush: {
+    paddingHorizontal: 0,
   },
   header: {
     paddingHorizontal: 16,
@@ -322,6 +362,13 @@ const styles = StyleSheet.create({
   activeTabText: { color: "#FFFFFF" },
   inactiveTabText: { color: "#606060" },
   listContent: { paddingBottom: 40, flexGrow: 1 },
+  tabletRow: {
+    gap: 12,
+  },
+  tabletCard: {
+    flex: 1,
+    minWidth: 0,
+  },
   listContentEmpty: { flexGrow: 1 },
   emptyContainer: {
     marginHorizontal: 16,

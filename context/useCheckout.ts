@@ -4,7 +4,7 @@ import {
     Checkout, 
     LanguageCodeEnum 
 } from "../checkout/graphql"; 
-import { getCheckoutId } from "../context/basketStore";
+import { getCheckoutId } from "./basketStore";
 
 export const useCheckout = () => {
     const [fetching, setFetching] = useState(true);

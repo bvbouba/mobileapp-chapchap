@@ -9,17 +9,27 @@ export type BiometricCapability = {
 };
 
 function biometricLabel(types: LocalAuthentication.AuthenticationType[]): string {
-  if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
-    return Platform.OS === "ios" ? "Face ID" : "reconnaissance faciale";
+  const hasFace = types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
+  const hasFinger = types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
+  const hasIris = types.includes(LocalAuthentication.AuthenticationType.IRIS);
+
+  // Prefer fingerprint on Android when both exist (Face ID branding is iOS-only;
+  // many Android devices expose both but users unlock with the finger sensor).
+  if (hasFace && hasFinger) {
+    return Platform.OS === "ios" ? "Face ID" : "empreinte";
   }
-  if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+  if (hasFace) {
+    return Platform.OS === "ios" ? "Face ID" : "visage";
+  }
+  if (hasFinger) {
     return Platform.OS === "ios" ? "Touch ID" : "empreinte";
   }
-  if (types.includes(LocalAuthentication.AuthenticationType.IRIS)) {
+  if (hasIris) {
     return "Iris";
   }
   return "biométrie";
 }
+
 
 export async function getBiometricCapability(): Promise<BiometricCapability> {
   try {

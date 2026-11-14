@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ProductCollection, TripsBarStats } from "./ProductCollection";
 import { Text } from "../Themed";
+import { useDeviceLayout } from "../../lib/layout/deviceLayout";
+import { TabletContentShell } from "../layout/TabletSplitView";
 
 import {
   AssignedAttributeValueFragment,
@@ -30,6 +32,7 @@ export const FilteredProductList = ({
   attributeFiltersData,
 }: Props) => {
   const insets = useSafeAreaInsets();
+  const { useTabletLayout, horizontalGutter } = useDeviceLayout();
   const [showFilter, setShowFilter] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [sortMode, setSortMode] = useState<ResultsSortMode>("chaplist");
@@ -82,11 +85,14 @@ export const FilteredProductList = ({
   if (!originData || !destinationData) return null;
 
   return (
-    <View style={styles.container}>
+    <TabletContentShell constrain style={styles.container}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.barScroll}
+        contentContainerStyle={[
+          styles.barScroll,
+          useTabletLayout && { paddingHorizontal: horizontalGutter },
+        ]}
         style={styles.barScrollOuter}
       >
         <TouchableOpacity
@@ -164,7 +170,7 @@ export const FilteredProductList = ({
         onClear={() => setActiveFilters({})}
         activeCount={activeFilterCount}
       />
-    </View>
+    </TabletContentShell>
   );
 };
 

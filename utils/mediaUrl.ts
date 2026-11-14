@@ -9,9 +9,18 @@ const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "0.0.0.0"]);
 export const resolveMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
 
+  let normalized = url.trim();
+  if (normalized.startsWith("//")) {
+    normalized = `https:${normalized}`;
+  }
+
   try {
-    const mediaUrl = new URL(url);
+    const mediaUrl = new URL(normalized);
     if (!LOCAL_HOSTS.has(mediaUrl.hostname)) {
+      // Android cleartext is disabled — prefer https when the host supports it.
+      if (mediaUrl.protocol === "http:" && !LOCAL_HOSTS.has(mediaUrl.hostname)) {
+        mediaUrl.protocol = "https:";
+      }
       return mediaUrl.toString();
     }
 
@@ -25,6 +34,6 @@ export const resolveMediaUrl = (url?: string | null): string | undefined => {
 
     return mediaUrl.toString();
   } catch {
-    return url;
+    return normalized;
   }
 };

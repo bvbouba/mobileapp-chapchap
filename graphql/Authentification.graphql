@@ -87,5 +87,40 @@ fragment UserDetails on User {
 query CurrentUser {
 	me {
 		...UserDetails
+		giftCards(first: 50) {
+			edges {
+				node {
+					id
+					code
+					displayCode
+					isActive
+					currentBalance {
+						amount
+						currency
+					}
+				}
+			}
+		}
+	}
+}
+
+query ShopContact {
+	shop {
+		companyAddress {
+			phone
+		}
+	}
+}
+
+mutation AccountUpdate($input: AccountInput!) {
+	accountUpdate(input: $input) {
+		user {
+			...UserDetails
+		}
+		errors {
+			field
+			message
+			code
+		}
 	}
 }

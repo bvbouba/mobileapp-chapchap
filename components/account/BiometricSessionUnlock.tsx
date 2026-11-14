@@ -1,13 +1,20 @@
 import { useEffect, useRef } from "react";
-import { useAuth } from "../lib/providers/authProvider";
+import { useAuth } from "../../lib/providers/authProvider";
 
 /**
- * On launch, if Face ID / fingerprint was enabled, prompt immediately
- * so the user is restored without opening the login modal first.
+ * On launch (and after logout), if Face ID / fingerprint was enabled,
+ * prompt so the user is restored without opening the login modal first.
  */
 export function BiometricSessionUnlock() {
   const { loading, authenticated, biometricLoginReady, unlockWithBiometrics } = useAuth();
   const prompted = useRef(false);
+
+  // After a successful session, allow another auto-prompt on the next logout.
+  useEffect(() => {
+    if (authenticated) {
+      prompted.current = false;
+    }
+  }, [authenticated]);
 
   useEffect(() => {
     if (loading || authenticated || !biometricLoginReady || prompted.current) return;

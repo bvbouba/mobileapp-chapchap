@@ -119,6 +119,10 @@ fragment OrderFragment on Order {
 	lines {
 		...OrderLineFragment
 	}
+	metadata {
+		key
+		value
+	}
 	totalBalance {
 		...Money
 	}

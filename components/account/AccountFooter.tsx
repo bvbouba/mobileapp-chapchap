@@ -1,49 +1,24 @@
 import React from "react";
-import { StyleSheet, View, Pressable } from "react-native";
+import { StyleSheet, View } from "react-native";
+import Constants from "expo-constants";
 import { Text, colors } from "../Themed";
+
+const version =
+  Constants.expoConfig?.version ||
+  Constants.nativeAppVersion ||
+  "1.0.0";
 
 export const AccountFooter = () => (
   <View style={styles.container}>
-    <View style={styles.legal}>
-      <Pressable hitSlop={8}>
-        <Text style={styles.link}>Légal</Text>
-      </Pressable>
-      <Text style={styles.dot}>·</Text>
-      <Pressable hitSlop={8}>
-        <Text style={styles.link}>CGU</Text>
-      </Pressable>
-      <Text style={styles.dot}>·</Text>
-      <Pressable hitSlop={8}>
-        <Text style={styles.link}>Confidentialité</Text>
-      </Pressable>
-    </View>
-    <Text style={styles.version}>ChapTicket v1.0.0</Text>
+    <Text style={styles.version}>ChapChap Ticket • v{version}</Text>
   </View>
 );
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 28,
+    marginTop: 12,
     alignItems: "center",
     paddingVertical: 8,
-  },
-  legal: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 8,
-    marginBottom: 10,
-  },
-  link: {
-    fontSize: 13,
-    fontFamily: "TTNormsPro-Regular",
-    color: colors.blue,
-  },
-  dot: {
-    color: colors.grey300,
-    fontSize: 12,
-    fontFamily: "TTNormsPro-Bold",
   },
   version: {
     fontSize: 12,

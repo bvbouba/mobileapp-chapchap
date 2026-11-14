@@ -1,19 +1,19 @@
-import React from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
-import { useRouter, useGlobalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, colors } from '../Themed';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { formatFrenchShortTripDate } from '../../utils/attribute';
+import React from "react";
+import { StyleSheet, View, TouchableOpacity } from "react-native";
+import { useRouter, useGlobalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Text, colors } from "../Themed";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { formatFrenchShortTripDate } from "../../utils/attribute";
 
 const TripResultHeader = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  
-  const { originName, destinationName, date } = useGlobalSearchParams<{ 
-    originName: string; 
-    destinationName: string; 
-    date: string 
+
+  const { originName, destinationName, date } = useGlobalSearchParams<{
+    originName: string;
+    destinationName: string;
+    date: string;
   }>();
 
   const formatRouteDate = (dateStr: string | undefined) => {
@@ -32,28 +32,38 @@ const TripResultHeader = () => {
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <View style={styles.container}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => router.back()}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+        >
           <Ionicons name="arrow-back" size={20} color="#000000" />
         </TouchableOpacity>
-        
+
         <View style={styles.infoContainer}>
           <View style={styles.routeRow}>
-            <Text style={styles.cityText}>{originName || "Départ"}</Text>
-            <MaterialCommunityIcons 
-              name="arrow-right" 
-              size={16} 
-              color={colors.blue} 
-              style={{ marginHorizontal: 8 }} 
+            <Text style={styles.cityText} numberOfLines={1}>
+              {originName || "Départ"}
+            </Text>
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={16}
+              color={colors.green}
+              style={{ marginHorizontal: 6 }}
             />
-            <Text style={styles.cityText}>{destinationName || "Arrivée"}</Text>
+            <Text style={styles.cityText} numberOfLines={1}>
+              {destinationName || "Arrivée"}
+            </Text>
           </View>
-          {/* Apply the formatted date here */}
           <Text style={styles.dateText}>
             {displayDate ? `Départ ${displayDate}` : "Date non sélectionnée"}
           </Text>
         </View>
 
-        <View style={{ width: 40 }} />
+        {/* Balance spacer with back button */}
+        <View style={styles.iconButton} />
       </View>
     </View>
   );
@@ -61,52 +71,49 @@ const TripResultHeader = () => {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#D7D8DB',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
+    borderBottomColor: "#E8E9EC",
   },
   container: {
-    height: 66,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    minHeight: 66,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 8,
+    paddingVertical: 8,
   },
-  backButton: {
+  iconButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    // backgroundColor: "#F1F1F1",
-    borderWidth: 0,
-    borderColor: "#D7D8DB",
   },
   infoContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+    minWidth: 0,
   },
   routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    maxWidth: "100%",
   },
   cityText: {
-    fontSize: 16,
-    color: '#000000',
-    fontFamily: 'TTNormsPro-Bold',
-    textTransform: 'capitalize',
+    flexShrink: 1,
+    fontSize: 15,
+    color: "#111111",
+    fontFamily: "TTNormsPro-Bold",
+    textTransform: "capitalize",
   },
   dateText: {
-    fontSize: 13,
-    color: '#606060',
+    fontSize: 12,
+    color: "#606060",
     marginTop: 2,
-    fontFamily: 'TTNormsPro-Regular',
+    fontFamily: "TTNormsPro-Regular",
   },
 });
 

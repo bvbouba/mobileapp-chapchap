@@ -41,6 +41,8 @@ export interface UserConsumerProps {
     options?: LoginOptions,
   ) => Promise<boolean>;
   refreshAccessToken: () => Promise<string | null>;
+  /** Re-fetch `me` and update local profile (e.g. after accountUpdate). */
+  refreshUser: () => Promise<UserDetailsFragment | null>;
   biometricAvailable: boolean;
   biometricLoginReady: boolean;
   biometricLabel: string;
@@ -91,13 +93,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await setStoredRefreshToken(refresh);
   }, []);
 
-  const clearSession = useCallback(async () => {
+  /** Clear React/Apollo in-memory session only (keep SecureStore for Face ID). */
+  const clearMemorySession = useCallback(() => {
     setToken("");
     setRefreshToken("");
     setUser(null);
     setMemoryAuthToken(null);
-    await clearStoredSessionTokens();
+    setError(null);
   }, []);
+
+  /** Full wipe: memory + SecureStore tokens. */
+  const clearSession = useCallback(async () => {
+    clearMemorySession();
+    await clearStoredSessionTokens();
+  }, [clearMemorySession]);
 
   const fetchUser = async (currentToken: string) => {
     try {
@@ -110,8 +119,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (data?.me) {
-        setUser(data.me);
-        return data.me;
+        const { giftCards: _giftCards, ...profile } = data.me;
+        setUser(profile);
+        return profile;
       }
       return null;
     } catch (err) {
@@ -119,6 +129,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
   };
+
+  const refreshUser = useCallback(async (): Promise<UserDetailsFragment | null> => {
+    const currentToken = token || (await getStoredAuthToken());
+    if (!currentToken) return null;
+    return fetchUser(currentToken);
+  }, [token, client]);
 
   const refreshAccessToken = useCallback(async (): Promise<string | null> => {
     const currentRefresh = refreshToken || (await getStoredRefreshToken());
@@ -256,14 +272,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const enabled = await isBiometricLoginEnabled();
       const hasRefresh = await hasStoredRefreshSession();
       if (!enabled || !hasRefresh) {
-        setError("Aucune session biométrique enregistrée.");
+        setBiometricLoginReady(false);
         return false;
       }
 
       const cap = await getBiometricCapability();
       const prompt = await promptBiometricUnlock(`Se connecter avec ${cap.label}`);
       if (!prompt.success) {
-        setError(prompt.error ?? "Biométrie annulée.");
+        // Cancel / fail → stay on password form; keep stored biometric session.
         return false;
       }
 
@@ -271,6 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const refresh = await getStoredRefreshToken();
       if (!refresh) {
         setError("Session expirée. Connectez-vous avec votre mot de passe.");
+        await clearSession();
         await setBiometricLoginEnabled(false);
         setBiometricLoginReady(false);
         return false;
@@ -290,10 +307,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearSession, restoreSessionFromTokens]);
 
+  /**
+   * Logout clears the active session in memory.
+   * If Face ID was enabled, tokens stay in SecureStore so the next login can unlock with biometrics.
+   */
   const logout = async () => {
-    await clearSession();
-    await setBiometricLoginEnabled(false);
-    setBiometricLoginReady(false);
+    const biometricOn = await isBiometricLoginEnabled();
+    const hasRefresh = await hasStoredRefreshSession();
+    const cap = await getBiometricCapability();
+    const keepBiometricSession =
+      biometricOn && hasRefresh && cap.available && cap.enrolled;
+
+    if (keepBiometricSession) {
+      clearMemorySession();
+      setBiometricLoginReady(true);
+    } else {
+      await clearSession();
+      await setBiometricLoginEnabled(false);
+      setBiometricLoginReady(false);
+    }
     await client.clearStore();
   };
 
@@ -375,6 +407,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authenticated: !!user,
         login,
         refreshAccessToken,
+        refreshUser,
         biometricAvailable,
         biometricLoginReady,
         biometricLabel,

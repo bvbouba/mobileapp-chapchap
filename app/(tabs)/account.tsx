@@ -10,12 +10,15 @@ import { LoginForm } from "../../components/account/LoginForm";
 import { SignupForm } from "../../components/account/SignupForm";
 import { useAuth } from "../../lib/providers/authProvider";
 import { Text, colors } from "../../components/Themed";
+import { useDeviceLayout } from "../../lib/layout/deviceLayout";
+import { TabletContentShell } from "../../components/layout/TabletSplitView";
 
 export default function AccountScreen() {
   const { authenticated, user, logout } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
   const [mode, setMode] = useState<"login" | "signup">("login");
   const insets = useSafeAreaInsets();
+  const { useTabletLayout } = useDeviceLayout();
 
   const openAuth = (authMode: "login" | "signup") => {
     setMode(authMode);
@@ -34,11 +37,18 @@ export default function AccountScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.grey100} />
-      <View style={[styles.pageHeader, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.pageTitle}>Mon compte</Text>
+      <TabletContentShell>
+      <View
+        style={[
+          styles.pageHeader,
+          { paddingTop: insets.top + 16 },
+          useTabletLayout && { paddingHorizontal: 0 },
+        ]}
+      >
+        <Text style={styles.pageTitle}>Mon Compte</Text>
         <Text style={styles.pageSubtitle}>
           {authenticated
-            ? "Gérez votre profil et vos préférences."
+            ? "Gérez vos informations, avoirs et préférences."
             : "Connectez-vous pour retrouver vos billets partout."}
         </Text>
       </View>
@@ -48,6 +58,7 @@ export default function AccountScreen() {
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: Math.max(insets.bottom, 20) + 32 },
+          useTabletLayout && { maxWidth: 720, alignSelf: "center", width: "100%" },
         ]}
         keyboardShouldPersistTaps="handled"
       >
@@ -57,11 +68,11 @@ export default function AccountScreen() {
           <AuthHero onOpenAuth={openAuth} />
         )}
 
-        <Text style={styles.sectionLabel}>Aide & informations</Text>
         <AccountMenu isAuthenticated={authenticated} onLogout={logout} />
 
         <AccountFooter />
       </ScrollView>
+      </TabletContentShell>
 
       {/* Portal so country picker Modal is not nested (Android fullscreen). */}
       <Portal>
@@ -115,14 +126,5 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontFamily: "TTNormsPro-Bold",
-    color: colors.grey500,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    marginBottom: 8,
-    marginTop: 4,
   },
 });

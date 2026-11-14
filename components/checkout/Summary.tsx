@@ -1,12 +1,9 @@
 import React, { useState } from "react";
-import { Alert, StyleSheet, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { View, Text, Divider, PaddedView, colors } from "../Themed";
+import { StyleSheet, TouchableOpacity, View as RNView } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Text, colors } from "../Themed";
 import { getTripInformation } from "../../utils/attribute";
 import { PLATFORM_FEE_PRODUCT_SLUG } from "../../utils/ensurePlatformFeeInCheckout";
-
-const LINK_GREY = "#D7D8DB";
-const DOT_GREY = "#B0B0B0";
 
 interface SummaryProps {
   lines: any[];
@@ -17,19 +14,24 @@ interface SummaryProps {
   voucherCode?: string | null;
   giftCards?: any[];
   shippingPrice?: any;
-  /** When false, service fee + total rows stay hidden until checkout pricing includes the platform fee. */
   pricingReady?: boolean;
 }
 
-export const Summary: React.FC<SummaryProps> = ({
-  lines,
-  totalPrice,
-  pricingReady = true,
-}) => {
-  const [isOpen, setIsOpen] = useState(true);
-  const feeLine = lines?.find((line) => line?.variant?.product?.slug === PLATFORM_FEE_PRODUCT_SLUG);
-  const tripLines = lines?.filter((line) => line?.variant?.product?.slug !== PLATFORM_FEE_PRODUCT_SLUG);
-  const line = tripLines?.[0];
+function formatMoney(amount?: number | null, currency?: string | null): string {
+  if (amount == null || !Number.isFinite(amount)) return "—";
+  const cur =
+    (currency || "XOF").toUpperCase() === "XOF" ? "FCFA" : currency || "";
+  return `${Math.round(amount).toLocaleString("fr-FR")} ${cur}`.trim();
+}
+
+/** Compact accordion trip summary for checkout. */
+export const Summary: React.FC<SummaryProps> = ({ lines }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const tripLines =
+    lines?.filter(
+      (line) => line?.variant?.product?.slug !== PLATFORM_FEE_PRODUCT_SLUG,
+    ) ?? [];
+  const line = tripLines[0];
   const {
     departureCity,
     departureTimeStr,
@@ -38,21 +40,41 @@ export const Summary: React.FC<SummaryProps> = ({
     formattedDate,
     departureStation,
     arrivalStation,
+    company,
   } = getTripInformation({ attributes: line?.variant?.attributes || [] });
 
-  const passengerCount = tripLines.reduce((acc, curr) => acc + (curr.quantity || 0), 0);
-  const amount = totalPrice?.gross?.amount ?? 0;
-  const currency = totalPrice?.gross?.currency ?? "XOF";
-  const platformFeeAmount = feeLine?.totalPrice?.gross?.amount ?? 0;
-  const platformFeeCurrency = feeLine?.totalPrice?.gross?.currency ?? currency;
+  const passengerCount = tripLines.reduce(
+    (acc, curr) => acc + (curr.quantity || 0),
+    0,
+  );
+  const ticketWord = passengerCount > 1 ? "tickets" : "ticket";
+  const routeLabel = [departureCity, arrivalCity].filter(Boolean).join(" ➔ ");
+  const compactTitle = [
+    company,
+    routeLabel,
+    passengerCount ? `(${passengerCount} ${ticketWord})` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <View style={styles.container}>
+    <RNView style={styles.container}>
       <TouchableOpacity
         style={styles.header}
         onPress={() => setIsOpen(!isOpen)}
         activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Résumé du trajet"
       >
-        <Text style={styles.title}>Résumé du voyage</Text>
+        <RNView style={styles.headerTextWrap}>
+          <Text style={styles.eyebrow}>Votre trajet</Text>
+          <Text style={styles.compactTitle} numberOfLines={isOpen ? 3 : 2}>
+            {compactTitle || "Résumé du voyage"}
+          </Text>
+          {!isOpen && formattedDate ? (
+            <Text style={styles.compactMeta}>{formattedDate}</Text>
+          ) : null}
+        </RNView>
         <Ionicons
           name={isOpen ? "chevron-up" : "chevron-down"}
           size={18}
@@ -60,69 +82,116 @@ export const Summary: React.FC<SummaryProps> = ({
         />
       </TouchableOpacity>
 
-      {isOpen && (
-        <PaddedView style={styles.content}>
-          <View style={styles.routeRow}>
-            <View style={styles.routeRail}>
-              <View style={styles.dot} />
-              <View style={styles.segmentLine} />
-              <View style={styles.dot} />
-            </View>
-
-            <View style={styles.routeBody}>
-              <View style={styles.routeStop}>
-                <Text style={styles.cityLabel}>Départ: {departureCity?.toUpperCase()}</Text>
-                <Text style={styles.timeLabel}>
-                  {departureTimeStr} • {formattedDate}
-                </Text>
-                <Text style={styles.stationLabel}>{departureStation}</Text>
-              </View>
-
-              <View style={styles.routeStop}>
-                <Text style={styles.cityLabel}>Arrivée: {arrivalCity?.toUpperCase()}</Text>
-                <Text style={styles.timeLabel}>
-                  {arrivalTimeStr} • {formattedDate}
-                </Text>
-                <Text style={styles.stationLabel}>{arrivalStation}</Text>
-              </View>
-            </View>
-          </View>
-
-          <Divider style={styles.divider} />
-
-          <View style={styles.row}>
-            <View style={styles.serviceFeeLabelWrap}>
-              <Text style={styles.label}>Service Fee</Text>
-              <TouchableOpacity
-                style={styles.infoIconBtn}
-                activeOpacity={0.85}
-                onPress={() =>
-                  Alert.alert(
-                    "Service Fee",
-                    "This fee helps us keep the Sira platform secure and provides you with 24/7 customer support for your journey."
-                  )
-                }
-              >
-                <Ionicons name="information-circle-outline" size={16} color="#606060" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.value}>
-              {platformFeeAmount} {platformFeeCurrency}
+      {isOpen ? (
+        <RNView style={styles.content}>
+          <RNView style={styles.detailRow}>
+            <MaterialCommunityIcons
+              name="calendar-month-outline"
+              size={16}
+              color="#606060"
+            />
+            <Text style={styles.detailText}>
+              {formattedDate || "Date"} · {departureTimeStr}
+              {arrivalTimeStr ? ` → ${arrivalTimeStr}` : ""}
             </Text>
-          </View>
-
-          <View style={[styles.row, { marginTop: 10 }]}>
-            <View>
-              <Text style={styles.totalLabel}>Total du voyage</Text>
-              <Text style={styles.passengerSub}>Pour {passengerCount} voyageur(s)</Text>
-            </View>
-            <Text style={styles.totalValue}>
-              {amount} {currency}
+          </RNView>
+          <RNView style={styles.detailRow}>
+            <MaterialCommunityIcons
+              name="map-marker-outline"
+              size={16}
+              color="#606060"
+            />
+            <Text style={styles.detailText}>
+              {departureStation || departureCity || "Départ"} →{" "}
+              {arrivalStation || arrivalCity || "Arrivée"}
             </Text>
-          </View>
-        </PaddedView>
-      )}
-    </View>
+          </RNView>
+        </RNView>
+      ) : null}
+    </RNView>
+  );
+};
+
+interface FinancialRecapProps {
+  lines: any[];
+  totalPrice?: {
+    gross: { currency: string; amount: number };
+  };
+  giftCards?: Array<{
+    id?: string;
+    displayCode?: string;
+    currentBalance?: { amount?: number; currency?: string };
+  }>;
+  voucherCode?: string | null;
+}
+
+export const FinancialRecap: React.FC<FinancialRecapProps> = ({
+  lines,
+  totalPrice,
+  giftCards = [],
+  voucherCode,
+}) => {
+  const feeLine = lines?.find(
+    (line) => line?.variant?.product?.slug === PLATFORM_FEE_PRODUCT_SLUG,
+  );
+  const tripLines =
+    lines?.filter(
+      (line) => line?.variant?.product?.slug !== PLATFORM_FEE_PRODUCT_SLUG,
+    ) ?? [];
+  const passengerCount = tripLines.reduce(
+    (acc, curr) => acc + (curr.quantity || 0),
+    0,
+  );
+  const ticketAmount = tripLines.reduce(
+    (acc, l) => acc + (l?.totalPrice?.gross?.amount ?? 0),
+    0,
+  );
+  const currency =
+    totalPrice?.gross?.currency ||
+    tripLines[0]?.totalPrice?.gross?.currency ||
+    "XOF";
+  const feeAmount = feeLine?.totalPrice?.gross?.amount ?? 0;
+  const totalAmount = totalPrice?.gross?.amount ?? ticketAmount + feeAmount;
+
+  return (
+    <RNView style={styles.financeCard}>
+      <Text style={styles.financeTitle}>Récapitulatif financier</Text>
+      <RNView style={styles.financeRow}>
+        <Text style={styles.financeLabel}>
+          Billet{passengerCount > 1 ? "s" : ""} x{passengerCount || 1}
+        </Text>
+        <Text style={styles.financeValue}>
+          {formatMoney(ticketAmount, currency)}
+        </Text>
+      </RNView>
+      <RNView style={styles.financeRow}>
+        <Text style={styles.financeLabel}>Frais de service</Text>
+        <Text style={styles.financeValue}>
+          {formatMoney(feeAmount, currency)}
+        </Text>
+      </RNView>
+      {voucherCode ? (
+        <RNView style={styles.financeRow}>
+          <Text style={styles.financeLabel}>Code promo</Text>
+          <Text style={styles.financeCredit}>{voucherCode}</Text>
+        </RNView>
+      ) : null}
+      {giftCards.map((card) => (
+        <RNView key={card.id || card.displayCode} style={styles.financeRow}>
+          <Text style={styles.financeLabel}>
+            Avoir ••••{card.displayCode || ""}
+          </Text>
+          <Text style={styles.financeCredit}>Appliqué</Text>
+        </RNView>
+      ))}
+      <RNView style={styles.financeDivider} />
+      <RNView style={styles.financeRow}>
+        <Text style={styles.financeTotalLabel}>Total à régler</Text>
+        <Text style={styles.financeTotalValue}>
+          {formatMoney(totalAmount, currency)}
+        </Text>
+      </RNView>
+    </RNView>
   );
 };
 
@@ -134,102 +203,98 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 10,
   },
-  title: {
-    fontSize: 20,
-    color: "#000000",
-    fontFamily: "TTNormsPro-Bold",
-  },
-  content: {
-    paddingTop: 0,
-    paddingBottom: 20,
-  },
-  routeRow: {
-    flexDirection: "row",
-    gap: 12,
-    alignItems: "stretch",
-  },
-  routeRail: {
-    width: 10,
-    alignItems: "center",
-    paddingTop: 6,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: DOT_GREY,
-  },
-  segmentLine: {
-    width: 2,
-    flexGrow: 1,
-    minHeight: 28,
-    marginVertical: 4,
-    backgroundColor: LINK_GREY,
-    borderRadius: 1,
-  },
-  routeBody: {
+  headerTextWrap: {
     flex: 1,
-    justifyContent: "space-between",
-    gap: 16,
+    minWidth: 0,
   },
-  routeStop: {
-    flexShrink: 0,
-  },
-  cityLabel: {
-    fontSize: 14,
-    color: "#000000",
-    fontFamily: "TTNormsPro-Bold",
-  },
-  timeLabel: {
-    fontSize: 13,
+  eyebrow: {
+    fontSize: 11,
     color: "#606060",
-    marginVertical: 2,
-    fontFamily: "TTNormsPro-Regular",
+    fontFamily: "TTNormsPro-Bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+    marginBottom: 4,
   },
-  stationLabel: {
+  compactTitle: {
+    fontSize: 15,
+    color: "#111111",
+    fontFamily: "TTNormsPro-Bold",
+    lineHeight: 20,
+  },
+  compactMeta: {
+    marginTop: 4,
     fontSize: 12,
     color: "#606060",
     fontFamily: "TTNormsPro-Regular",
   },
-  divider: { marginVertical: 16, backgroundColor: "#F1F1F1" },
-  pricingPending: {
-    minHeight: 72,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 16,
-    gap: 10,
+  content: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    gap: 8,
   },
-  pricingPendingText: {
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  detailText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#404040",
+    fontFamily: "TTNormsPro-Regular",
+    lineHeight: 18,
+  },
+  financeCard: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  financeTitle: {
     fontSize: 13,
     color: "#606060",
-    fontFamily: "TTNormsPro-Regular",
+    fontFamily: "TTNormsPro-Bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+    marginBottom: 12,
   },
-  row: {
+  financeRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 8,
   },
-  serviceFeeLabelWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+  financeLabel: {
+    fontSize: 14,
+    color: "#606060",
+    fontFamily: "TTNormsPro-Regular",
   },
-  infoIconBtn: {
-    padding: 2,
+  financeValue: {
+    fontSize: 14,
+    color: "#111111",
+    fontFamily: "TTNormsPro-Regular",
   },
-  label: { fontSize: 14, color: "#606060", fontFamily: "TTNormsPro-Regular" },
-  value: { fontSize: 14, color: "#000000", fontFamily: "TTNormsPro-Regular" },
-  totalLabel: {
-    fontSize: 16,
-    color: "#000000",
+  financeCredit: {
+    fontSize: 14,
+    color: colors.green,
     fontFamily: "TTNormsPro-Bold",
   },
-  passengerSub: { fontSize: 12, color: "#606060", fontFamily: "TTNormsPro-Regular" },
-  totalValue: {
-    fontSize: 20,
-    color: colors.green,
+  financeDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "#E8E9EC",
+    marginVertical: 8,
+  },
+  financeTotalLabel: {
+    fontSize: 15,
+    color: "#111111",
+    fontFamily: "TTNormsPro-Bold",
+  },
+  financeTotalValue: {
+    fontSize: 18,
+    color: "#111111",
     fontFamily: "TTNormsPro-Bold",
   },
 });

@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   Image,
-  Dimensions,
   Modal,
   Pressable,
   StatusBar,
   LayoutAnimation,
   Platform,
   UIManager,
+  useWindowDimensions,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,6 +26,8 @@ import { PLATFORM_FEE_PRODUCT_SLUG } from "../../utils/ensurePlatformFeeInChecko
 import { resolveMediaUrl } from "../../utils/mediaUrl";
 import { colors } from "../Themed";
 import { getTripStatusBadge } from "../../lib/tripStatus";
+import { formatPaymentStatusLabelFr } from "../../lib/bookingStatus";
+import { getPassengerDisplayNames } from "../../utils/passengersMetadata";
 
 dayjs.locale("fr");
 
@@ -33,14 +35,16 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const { width, height } = Dimensions.get("window");
 const TICKET_PROOF_IMAGE_URL_KEY = "ticket_proof_image_url";
 type OrderMetadataItem = { key: string; value: string };
 type ZoomTarget = "image" | "qr" | null;
 
 type OrderWithPayment = OrderFragment & {
   isPaid?: boolean | null;
+  paymentStatus?: string | null;
   paymentStatusDisplay?: string | null;
+  authorizeStatus?: string | null;
+  chargeStatus?: string | null;
 };
 
 function metaValue(
@@ -91,17 +95,20 @@ function paymentMethodLabel(metadata: Array<{ key: string; value: string }>): st
 
 function paymentStatusLine(order: OrderWithPayment): string {
   const method = paymentMethodLabel(order.metadata ?? []);
-  const paid =
-    order.isPaid === true ||
-    (order.paymentStatusDisplay ?? "").toLowerCase().includes("fully") ||
-    (order.paymentStatusDisplay ?? "").toLowerCase().includes("paid") ||
-    (order.status ?? "").toUpperCase() === "FULFILLED";
-  const statusLabel = paid ? "Payé" : order.paymentStatusDisplay?.trim() || "En attente";
+  const statusLabel = formatPaymentStatusLabelFr({
+    isPaid: order.isPaid,
+    paymentStatus: order.paymentStatus,
+    paymentStatusDisplay: order.paymentStatusDisplay,
+    authorizeStatus: order.authorizeStatus,
+    chargeStatus: order.chargeStatus,
+    metadata: order.metadata,
+  });
   return method ? `${statusLabel} (${method})` : statusLabel;
 }
 
 export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const [zoomTarget, setZoomTarget] = useState<ZoomTarget>(null);
   const [receiptOpen, setReceiptOpen] = useState(false);
 
@@ -123,6 +130,11 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
   const statusCfg = getTripStatusBadge(
     (ticketLine?.variant as { metadata?: Array<{ key: string; value: string }> } | null | undefined)
       ?.metadata ?? [],
+    {
+      orderStatus: order.status,
+      orderMetadata: order.metadata,
+      fulfillments: order.fulfillments,
+    },
   );
   const confirmationCode = getConfirmationCode(order);
   const tripIdLabel = ticketLine?.variant?.id
@@ -137,26 +149,14 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
   const companyTicketNumbers = parseCompanyTicketNumbers(orderMetadata);
 
   const getPassengers = (): string[] => {
-    if (!order.customerNote) {
-      return Array.from({ length: Math.max(ticketCount, 1) }, (_, i) =>
-        ticketCount > 1 ? `Passager ${i + 1}` : "Passager",
-      );
-    }
-    try {
-      const passengerBlocks = order.customerNote
-        .split(";")
-        .map((p) => p.trim())
-        .filter(Boolean);
-      return passengerBlocks.map((block) => {
-        const [lastName, firstName] = block.split(",");
-        if (firstName?.trim() && lastName?.trim()) {
-          return `${firstName.trim()} ${lastName.trim()}`;
-        }
-        return block;
-      });
-    } catch {
-      return [order.customerNote || "Passager"];
-    }
+    const names = getPassengerDisplayNames({
+      metadata: order.metadata,
+      customerNote: order.customerNote,
+    });
+    if (names.length > 0) return names;
+    return Array.from({ length: Math.max(ticketCount, 1) }, (_, i) =>
+      ticketCount > 1 ? `Passager ${i + 1}` : "Passager",
+    );
   };
 
   const allPassengers = getPassengers();
@@ -170,7 +170,7 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
   };
 
   return (
-    <View style={styles.ticketContainer}>
+    <View style={[styles.ticketContainer, { width: Math.min(width * 0.9, 520) }]}>
       {/* Brand + status + operator */}
       <View style={styles.headerSection}>
         <View style={styles.headerTop}>
@@ -233,6 +233,12 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
         <View style={styles.dateRow}>
           <MaterialCommunityIcons name="calendar" size={16} color="#606060" />
           <Text style={styles.dateText}>Date : {formatLongFrenchDate(departureDate)}</Text>
+        </View>
+        <View style={[styles.dateRow, { marginTop: 6 }]}>
+          <MaterialCommunityIcons name="calendar-check-outline" size={16} color="#606060" />
+          <Text style={styles.dateText}>
+            Acheté le : {formatLongFrenchDate(order.created ? new Date(order.created) : null)}
+          </Text>
         </View>
 
         <View style={styles.depArrRow}>
@@ -398,7 +404,7 @@ export const TicketModalContent = ({ order }: { order: OrderFragment }) => {
             {zoomTarget === "image" && ticketImageUrl ? (
               <Image
                 source={{ uri: ticketImageUrl }}
-                style={styles.zoomImage}
+                style={[styles.zoomImage, { width, height: height * 0.85 }]}
                 resizeMode="contain"
               />
             ) : null}
@@ -426,7 +432,6 @@ const styles = StyleSheet.create({
   ticketContainer: {
     backgroundColor: "white",
     borderRadius: 24,
-    width: width * 0.9,
     alignSelf: "center",
     shadowColor: "#000",
     shadowOpacity: 0.15,
@@ -434,8 +439,7 @@ const styles = StyleSheet.create({
     elevation: 8,
     marginVertical: 10,
     overflow: "hidden",
-  },
-  headerSection: {
+  },  headerSection: {
     paddingHorizontal: 18,
     paddingTop: 18,
     paddingBottom: 14,
@@ -739,8 +743,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   zoomImage: {
-    width,
-    height: height * 0.85,
+    maxWidth: "100%",
   },
   zoomQrWrap: {
     backgroundColor: "#FFFFFF",

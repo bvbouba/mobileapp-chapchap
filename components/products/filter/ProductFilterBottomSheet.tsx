@@ -1,20 +1,28 @@
 import { useFormik } from "formik";
-import { FC, useEffect } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { type ComponentType, FC, useEffect } from "react";
+import { ScrollView as RNScrollView, type ScrollViewProps, StyleSheet } from "react-native";
 import { Button, Chip, Modal } from "react-native-paper";
 import * as yup from "yup";
 import CheckBoxWithLabel from "../../../utils/CheckboxWithLabel";
 import { getConfig } from "../../../config";
 import { useProductContext } from "../../../context/useProductContext";
-import { CategoryPathFragment, CollectionFragment, useCategoryPathsQuery, useGetCollectionsQuery } from "../../../saleor/api.generated";
+import {
+    CategoryPathFragmentFragment,
+    CollectionFragmentFragment,
+    useCategoryPathsQuery,
+    useGetCollectionsQuery,
+} from "../../../saleor/api.generated";
 import { Text, View } from "../../Themed";
+
+/** React 19 + RN 0.81: class component JSX types disagree; cast keeps runtime ScrollView. */
+const ScrollView = RNScrollView as unknown as ComponentType<ScrollViewProps>;
 
 interface Props {
     open: boolean
     onClose: () => void
     onApply: (data: {
-        collection: CollectionFragment | undefined,
-        categories: CategoryPathFragment[]
+        collection: CollectionFragmentFragment | undefined,
+        categories: CategoryPathFragmentFragment[]
     }) => void
 }
 
@@ -28,7 +36,7 @@ const validationSchema = yup.object().shape({
     categories: yup.array().required("Required"),
 });
 
-const CollectionForm: FC<{ value: string | undefined, collections: CollectionFragment[], onChange: (value: string | undefined) => void }> = ({ collections, value: collectionFilter, onChange }) => {
+const CollectionForm: FC<{ value: string | undefined, collections: CollectionFragmentFragment[], onChange: (value: string | undefined) => void }> = ({ collections, value: collectionFilter, onChange }) => {
     const selectedCollection = collections?.filter(edge => edge.slug === collectionFilter);
     const unselectedCollections = collections?.filter(edge => edge.slug !== collectionFilter);
 

@@ -2,10 +2,10 @@ import { FC } from "react";
 import { Image, Pressable, StyleSheet } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import { PaddedView, Text, View } from "../Themed";
-import { CategoryPathFragment } from "../../saleor/api.generated";
+import { CategoryPathFragmentFragment } from "../../saleor/api.generated";
 
 interface Props {
-    categories: CategoryPathFragment[]
+    categories: CategoryPathFragmentFragment[]
     onClick: (category: string) => void
 }
 

@@ -1,38 +1,33 @@
-import React from 'react';
-import { StyleSheet, View, Pressable, StatusBar } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { StatusBar } from "expo-status-bar";
+import React from "react";
+import { StyleSheet, View, Pressable } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Text } from "../Themed";
 
 export const ConfirmationHeader = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const handleBack = () => {
+  const goHome = () => {
     router.replace("/");
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
-      
+      <StatusBar style="dark" />
       <View style={styles.content}>
-        {/* Bouton Retour */}
-        <Pressable onPress={handleBack} style={styles.leftButton}>
-          <MaterialCommunityIcons name="arrow-left" size={28} color="#1E293B" />
+        <Pressable
+          onPress={goHome}
+          style={styles.homeBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Retour à l'accueil"
+        >
+          <Ionicons name="home-outline" size={20} color="#111111" />
+          <Text style={styles.homeLabel}>Accueil</Text>
         </Pressable>
-        
-        {/* Centre : Logo Large */}
-        {/* <View style={styles.centerContainer}>
-          <Image 
-            source={require('../../assets/images/logo.png')} 
-            style={styles.logo}
-            resizeMode="contain" // Garantit que l'image n'est pas coupée
-          />
-        </View> */}
-        
-        {/* Équilibre le centrage (doit avoir la même largeur que leftButton) */}
-        <View style={styles.rightPlaceholder} />
+        <View style={styles.spacer} />
       </View>
     </View>
   );
@@ -40,31 +35,33 @@ export const ConfirmationHeader = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E9EC",
   },
   content: {
-    height: 70, // Augmenté pour laisser de la place au logo
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    minHeight: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingBottom: 8,
   },
-  leftButton: {
-    width: 50, // Largeur fixe pour le calcul du centrage
-    height: '100%',
-    justifyContent: 'center',
+  homeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: "#F7F7F8",
+    borderWidth: 1,
+    borderColor: "#E2E3E7",
   },
-  centerContainer: {
-    flex: 1, // Prend tout l'espace central disponible
-    alignItems: 'center',
-    justifyContent: 'center',
+  homeLabel: {
+    fontSize: 14,
+    color: "#111111",
+    fontFamily: "TTNormsPro-Bold",
   },
-  logo: {
-    width: 150,       // Largeur augmentée pour qu'il soit bien visible
-    height: '100%',   // Utilise toute la hauteur du content (70px)
-    aspectRatio: 3,   // Ajustez selon le ratio réel de votre logo (Largeur / Hauteur)
-  },
-  rightPlaceholder: {
-    width: 50, // Strictement identique à leftButton.width
-  }
+  spacer: { width: 36 },
 });

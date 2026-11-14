@@ -1,0 +1,32 @@
+# Replaces .gitignore for EAS upload. Must NOT exclude saleor/api.generated.ts.
+
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+.DS_Store
+.metro-health-check*
+.env
+graphql.schema.generated.json
+credentials.json
+credentials/
+
+# Native iOS tree not needed for Android builds (Pods bloated archive)
+ios/
+
+# Local Android/Gradle build outputs
+android/app/build/
+android/build/
+android/.gradle/
+*.apk
+*.aab
+
+.tmp/
+*.apk

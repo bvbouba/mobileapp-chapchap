@@ -1,33 +1,75 @@
-import React from 'react';
-import { Image, ImageBackground, Platform, StyleSheet, View } from 'react-native';
+import React from "react";
+import {
+  Image,
+  ImageBackground,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors } from "../Themed";
+import {
+  DASHBOARD_LOGO_HEIGHT,
+  DASHBOARD_LOGO_WIDTH,
+  HERO_BANNER_HEIGHT,
+} from "./dashboardBranding";
 
-/** Logo brand green (#A6C65A). iOS overlays read stronger — tune per platform. */
-const OVERLAY_GREEN_OPACITY = Platform.select({
-  ios: 0,
-  android: 0,
-  default: 0.55,
-}) as number;
+/** Deep brand green for logo contrast (derived from colors.green). */
+const GREEN_DEEP = "#3D5A1A";
 
-const OVERLAY_GREEN = `rgba(166, 198, 90, ${OVERLAY_GREEN_OPACITY})`;
+type Props = {
+  /** Tablet landscape: fill the pane instead of a fixed phone banner height. */
+  compact?: boolean;
+};
 
-const HeroHeader = () => {
+const HeroHeader = ({ compact = false }: Props) => {
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const bannerHeight = compact
+    ? undefined
+    : HERO_BANNER_HEIGHT + insets.top;
+
   return (
-    <View style={styles.topHalf}>
+    <View
+      style={[
+        styles.topHalf,
+        compact ? styles.topHalfCompact : { height: bannerHeight },
+        { backgroundColor: colors.green },
+      ]}
+    >
       <ImageBackground
-        source={require('../../assets/images/hero-header.jpg')}
-        style={styles.heroBg}
+        source={require("../../assets/images/hero-header.jpg")}
+        style={[styles.heroBg, !compact && { width }]}
         imageStyle={styles.heroImage}
       >
-        <View style={[styles.overlaySoft, { backgroundColor: OVERLAY_GREEN }]} />
-
-       <View style={styles.logoRow}>
+        <LinearGradient
+          colors={[
+            `${GREEN_DEEP}EB`,
+            `${colors.green}B8`,
+            `${colors.green}47`,
+            "transparent",
+          ]}
+          locations={[0, 0.35, 0.65, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.gradient}
+          pointerEvents="none"
+        />
+        <View
+          style={[
+            styles.logoRow,
+            { paddingTop: compact ? 28 : insets.top + 8 },
+            compact && styles.logoRowCompact,
+          ]}
+        >
           <Image
-            source={require('../../assets/images/logo/5.png')}
-            style={styles.logo}
+            source={require("../../assets/images/logo/1.png")}
+            style={[styles.logo, compact && styles.logoCompact]}
             resizeMode="contain"
-            accessibilityLabel="ChapTicket"
+            accessibilityLabel="ChapChaTicket"
           />
-        </View> 
+        </View>
       </ImageBackground>
     </View>
   );
@@ -35,35 +77,45 @@ const HeroHeader = () => {
 
 const styles = StyleSheet.create({
   topHalf: {
+    overflow: "hidden",
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  topHalfCompact: {
     flex: 1,
-    backgroundColor: '#A6C65A',
-    overflow: 'hidden',
+    minHeight: 280,
+    borderRadius: 24,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
   heroBg: {
     flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    borderColor: 'red',
-    borderWidth: 1,
+    justifyContent: "flex-start",
+    alignItems: "center",
+    width: "100%",
   },
   heroImage: {
-    resizeMode: 'cover',
+    resizeMode: "cover",
   },
-  overlaySoft: {
+  gradient: {
     ...StyleSheet.absoluteFillObject,
   },
   logoRow: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 40,
-    paddingHorizontal: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
     zIndex: 1,
   },
+  logoRowCompact: {
+    flex: 1,
+  },
   logo: {
-    width: 220,
-    height: 80,
+    width: DASHBOARD_LOGO_WIDTH + 40,
+    height: DASHBOARD_LOGO_HEIGHT + 12,
+  },
+  logoCompact: {
+    width: DASHBOARD_LOGO_WIDTH + 80,
+    height: DASHBOARD_LOGO_HEIGHT + 28,
   },
 });
 
