@@ -9,7 +9,7 @@
     "test": "jest --watchAll",
     "generate": "graphql-codegen --config codegen.ts --verbose",
     "generate-checkout": "graphql-codegen --config codegen-checkout.ts --verbose",
-    "postinstall": "node ./scripts/strip-types-react-native.js",
+    "postinstall": "node ./scripts/strip-types-react-native.js && node ./scripts/fix-react-async-hook.js",
     "eas:build:android": "eas build --platform android --profile production",
     "eas:build:ios": "eas build --platform ios --profile production",
     "eas:build:all": "eas build --platform all --profile production",
